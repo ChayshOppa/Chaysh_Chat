@@ -1,0 +1,29 @@
+build:
+  environment: python
+  pythonVersion: 3.11
+
+services:
+  - type: web
+    name: chaysh
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app --bind 0.0.0.0:$PORT
+    envVars:
+      # Required environment variables - must be set in Render dashboard
+      - key: OPENROUTER_API_KEY
+        sync: false
+        description: Your OpenRouter API key for AI processing
+      - key: SECRET_KEY
+        generateValue: true
+        description: Flask secret key for session security
+      
+      # Optional environment variables
+      - key: FLASK_DEBUG
+        value: false
+        description: Set to true for development mode
+      - key: MODEL
+        value: mistral-7b-instruct
+        description: AI model to use for processing
+      - key: OPENROUTER_API_URL
+        value: https://openrouter.ai/api/v1/chat/completions
+        description: OpenRouter API endpoint 
