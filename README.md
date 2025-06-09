@@ -1,8 +1,8 @@
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/yourusername/chaysh)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ChayshOppa/Chaysh)
 
-[![Render Status](https://img.shields.io/endpoint?url=https://dashboard.render.com/api/v1/services/chaysh/status&style=flat)](https://dashboard.render.com/web/chaysh)
+![Render Status](https://render.com/api/v1/services/chaysh/status.svg)
 
-[Live Demo](https://chaysh.onrender.com)
+[Live Demo](https://chaysh.onrender.com/)
 
 # Chaysh
 

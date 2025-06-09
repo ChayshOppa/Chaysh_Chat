@@ -1,3 +1,11 @@
+# Required Render Secrets:
+# - OPENROUTER_API_KEY: Your OpenRouter API key for AI processing
+# - SECRET_KEY: Flask secret key for session security
+#
+# Optional Render Secrets:
+# - MODEL: AI model to use (default: mistral-7b-instruct)
+# - FLASK_DEBUG: Development mode flag (default: false)
+
 build:
   environment: python
   pythonVersion: 3.11
