@@ -6,7 +6,83 @@
 
 # Chaysh AI Assistant
 
-A modern AI assistant powered by GPT-4.1 Nano via OpenRouter API.
+## 🧠 Project Summary
+Chaysh is a lightweight Flask AI assistant deployed on Render. It uses OpenRouter and GPT-4.1 Nano to provide fast, cost-efficient answers and suggestions based on user input.
+
+## ✅ Features
+- Prompt and respond using `openai/gpt-4-1106-preview`
+- Optimized for low token usage (600 input, 300 output)
+- Auto-deployed via GitHub to Render
+- Mobile/PC-friendly with simple UI
+- Error handling + environment-based config
+- Live link: [https://chaysh-1.onrender.com](https://chaysh-1.onrender.com)
+
+## 🚀 Tech Stack
+- Python 3.11 + Flask
+- Gunicorn w/ UvicornWorker
+- OpenRouter API
+- Render for hosting
+- JavaScript frontend with HTML/CSS
+
+## 📁 Folder Structure
+```
+src/
+├── core/
+│   ├── assistant.py    # AI assistant implementation
+│   └── __init__.py
+├── templates/
+│   └── chat.html      # Frontend interface
+├── static/
+│   └── styles.css     # Styling
+└── main.py           # Flask application entry
+```
+
+## 🔧 Setup
+
+### Local Development
+1. Clone the repository:
+```bash
+git clone https://github.com/ChayshOppa/Chaysh.git
+cd Chaysh
+```
+
+2. Create `.env` file:
+```bash
+OPENROUTER_API_KEY=your-key
+SECRET_KEY=your-secret
+FLASK_DEBUG=true
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Run locally:
+```bash
+python src/main.py
+```
+
+### 🌍 Deployment
+The app is configured for deployment on Render with:
+
+1. `render.yaml` - Service configuration
+2. `Procfile` - Process management
+3. Environment variables managed via Render Secrets panel
+
+The backend is deployed using:
+```bash
+gunicorn src.main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT
+```
+
+## 🔒 Environment Variables
+- `OPENROUTER_API_KEY`: Your OpenRouter API key
+- `SECRET_KEY`: Flask secret key
+- `FLASK_DEBUG`: Set to true for development
+- `MODEL`: AI model to use (default: mistral-7b-instruct)
+
+## 📝 License
+MIT License
 
 ## Features
 
