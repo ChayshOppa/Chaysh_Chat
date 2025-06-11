@@ -180,8 +180,37 @@
         const chatContainer = document.getElementById('chat-container');
         const queryInput = document.getElementById('query-input');
         const chatTitle = document.getElementById('chat-title');
+        const sendButton = document.querySelector('button[onclick="sendQuery()"]');
         const MAX_INPUT_LENGTH = 600;
         const MAX_OUTPUT_LENGTH = 300;
+
+        // Translations object
+        const translations = {
+            en: {
+                title: 'Chat CTC',
+                placeholder: 'Ask me anything...',
+                send: 'Send',
+                error: 'An error occurred while processing your request.',
+                thinking: 'Thinking...',
+                messageTooLong: 'Message too long ({{length}}/{{max}} characters)'
+            },
+            pl: {
+                title: 'Chat CTC (Chaysh to Człowieku)',
+                placeholder: 'Zapytaj mnie o cokolwiek...',
+                send: 'Wyślij',
+                error: 'Wystąpił błąd podczas przetwarzania żądania.',
+                thinking: 'Myślę...',
+                messageTooLong: 'Wiadomość zbyt długa ({{length}}/{{max}} znaków)'
+            }
+        };
+
+        // Update UI text based on language
+        function updateUIText(lang) {
+            const t = translations[lang];
+            chatTitle.textContent = t.title;
+            queryInput.placeholder = t.placeholder;
+            sendButton.textContent = t.send;
+        }
 
         // Theme toggle functionality
         const themeToggle = document.getElementById('theme-toggle');
@@ -224,25 +253,15 @@
         langButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const lang = button.textContent.trim().split('\n')[1];
-                localStorage.setItem('language', lang);
-                updateUILanguage(lang);
+                const langCode = lang === 'Polski' ? 'pl' : 'en';
+                localStorage.setItem('language', langCode);
+                updateUIText(langCode);
             });
         });
 
-        // Update UI language
-        function updateUILanguage(lang) {
-            if (lang === 'Polski') {
-                chatTitle.textContent = 'Chat CTC (Chaysh to Człowieku)';
-                queryInput.placeholder = 'Zapytaj mnie o cokolwiek...';
-            } else {
-                chatTitle.textContent = 'Chat CTC';
-                queryInput.placeholder = 'Ask me anything...';
-            }
-        }
-
         // Initialize language
-        const savedLang = localStorage.getItem('language') || 'English';
-        updateUILanguage(savedLang);
+        const savedLang = localStorage.getItem('language') || 'en';
+        updateUIText(savedLang);
 
         function truncateText(text, maxLength) {
             return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
@@ -301,19 +320,28 @@
             addMessage(query, true);
             queryInput.value = '';
 
+            // Add loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'text-center text-gray-500 dark:text-gray-400';
+            loadingDiv.textContent = translations[localStorage.getItem('language') || 'en'].thinking;
+            chatContainer.appendChild(loadingDiv);
+
             try {
-                const response = await fetch('/api/chat', {
+                const response = await fetch('/api/ask', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
                         query,
-                        language: localStorage.getItem('language') || 'English'
+                        lang: localStorage.getItem('language') || 'en'
                     })
                 });
 
                 const data = await response.json();
+                
+                // Remove loading indicator
+                chatContainer.removeChild(loadingDiv);
                 
                 if (data.error) {
                     addError(data.error);
@@ -328,8 +356,11 @@
                     addSuggestions(data.suggestions);
                 }
             } catch (error) {
+                // Remove loading indicator
+                chatContainer.removeChild(loadingDiv);
+                
                 console.error('Chat error:', error);
-                addError('An error occurred while processing your request.');
+                addError(translations[localStorage.getItem('language') || 'en'].error);
             }
         }
 

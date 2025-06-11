@@ -16,17 +16,22 @@ def async_route(f):
 def index():
     return render_template('chat.html')
 
+@app.route("/terms")
+def terms():
+    return render_template('terms.html')
+
 @app.route("/api/ask", methods=['POST'])
 @async_route
 async def ask():
     try:
         data = request.get_json()
         query = data.get('query', '')
+        lang = data.get('lang', 'en')  # Default to English if not specified
         
         if not query:
             return jsonify({"error": "No query provided"}), 400
             
-        result = await assistant.process_query(query)
+        result = await assistant.process_query(query, lang)
         return jsonify(result)
         
     except Exception as e:

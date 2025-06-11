@@ -22,15 +22,38 @@ class Assistant:
         self.temperature = 0.7  # Balanced creativity
         self.top_p = 0.9  # Increased determinism
         
+        # Language-specific system prompts
+        self.system_prompts = {
+            'en': "You are Chaysh, a helpful AI assistant. Provide clear, concise responses and relevant suggestions in English.",
+            'pl': "Jesteś Chaysh, pomocnym asystentem AI. Odpowiadaj jasno i zwięźle po polsku, dostarczając odpowiednie sugestie."
+        }
+        
+        # Language-specific suggestions
+        self.suggestions = {
+            'en': [
+                "Can you elaborate on that?",
+                "What specific aspects are you interested in?",
+                "Would you like more detailed information?"
+            ],
+            'pl': [
+                "Czy możesz to rozwinąć?",
+                "Jakie konkretne aspekty Cię interesują?",
+                "Czy chciałbyś bardziej szczegółowe informacje?"
+            ]
+        }
+        
     def _truncate_prompt(self, prompt: str, max_length: int = 600) -> str:
         """Truncate prompt to max length."""
         return prompt[:max_length] if len(prompt) > max_length else prompt
         
-    async def process_query(self, query: str) -> Dict[str, Any]:
+    async def process_query(self, query: str, lang: str = 'en') -> Dict[str, Any]:
         """Process a user query and return AI response with suggestions."""
         try:
             # Truncate user input
             truncated_query = self._truncate_prompt(query)
+            
+            # Get language-specific system prompt
+            system_prompt = self.system_prompts.get(lang, self.system_prompts['en'])
             
             headers = {
                 "Authorization": f"Bearer {api_key}",
@@ -42,7 +65,7 @@ class Assistant:
             data = {
                 "model": self.model,
                 "messages": [
-                    {"role": "system", "content": "You are Chaysh, a helpful AI assistant. Provide clear, concise responses and relevant suggestions."},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": truncated_query}
                 ],
                 "temperature": self.temperature,
@@ -61,9 +84,12 @@ class Assistant:
                 
                 if response.status_code == 401:
                     print("API Error: Unauthorized - Invalid or missing API key")
+                    error_msg = "I apologize, but I'm currently unable to process requests due to an authentication issue. Please try again later."
+                    if lang == 'pl':
+                        error_msg = "Przepraszam, ale obecnie nie mogę przetwarzać żądań z powodu problemu z uwierzytelnianiem. Spróbuj ponownie później."
                     return {
                         "error": "Authentication failed",
-                        "response": "I apologize, but I'm currently unable to process requests due to an authentication issue. Please try again later.",
+                        "response": error_msg,
                         "suggestions": []
                     }
                 
@@ -74,8 +100,8 @@ class Assistant:
                 assistant_message = result['choices'][0]['message']['content']
                 truncated_response = self._truncate_prompt(assistant_message, 300)
                 
-                # Generate suggestions based on the query
-                suggestions = self._generate_suggestions(truncated_query)
+                # Get language-specific suggestions
+                suggestions = self._generate_suggestions(truncated_query, lang)
                 
                 return {
                     "response": truncated_response,
@@ -84,25 +110,25 @@ class Assistant:
                 
         except httpx.HTTPStatusError as e:
             print(f"HTTP Error: {e.response.status_code} - {e.response.text}")
+            error_msg = "I apologize, but I encountered an error while processing your request. Please try again later."
+            if lang == 'pl':
+                error_msg = "Przepraszam, ale napotkałem błąd podczas przetwarzania Twojego żądania. Spróbuj ponownie później."
             return {
                 "error": f"API request failed: {e.response.status_code}",
-                "response": "I apologize, but I encountered an error while processing your request. Please try again later.",
+                "response": error_msg,
                 "suggestions": []
             }
         except Exception as e:
             print(f"Error processing query: {str(e)}")
+            error_msg = "I apologize, but I encountered an unexpected error. Please try again later."
+            if lang == 'pl':
+                error_msg = "Przepraszam, ale napotkałem nieoczekiwany błąd. Spróbuj ponownie później."
             return {
                 "error": str(e),
-                "response": "I apologize, but I encountered an unexpected error. Please try again later.",
+                "response": error_msg,
                 "suggestions": []
             }
     
-    def _generate_suggestions(self, query: str) -> List[str]:
-        """Generate relevant follow-up suggestions based on the query."""
-        # Basic suggestion generation - can be enhanced based on query context
-        suggestions = [
-            "Can you elaborate on that?",
-            "What specific aspects are you interested in?",
-            "Would you like more detailed information?"
-        ]
-        return suggestions[:3]  # Return top 3 suggestions 
+    def _generate_suggestions(self, query: str, lang: str = 'en') -> List[str]:
+        """Generate relevant follow-up suggestions based on the query and language."""
+        return self.suggestions.get(lang, self.suggestions['en'])[:3]  # Return top 3 suggestions 
