@@ -1,415 +1,208 @@
-<!DOCTYPE html>
-<html lang="en" class="h-full">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat CTC</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-        // Configure Tailwind dark mode
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            200: '#bae6fd',
-                            300: '#7dd3fc',
-                            400: '#38bdf8',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1',
-                            800: '#075985',
-                            900: '#0c4a6e',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                    borderRadius: {
-                        'ios': '12px',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        [x-cloak] { display: none !important; }
-        
-        /* Smooth transitions */
-        .transition-all {
-            transition-property: all;
-            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-            transition-duration: 200ms;
-        }
-        
-        /* iOS-style gradients */
-        .ios-gradient {
-            background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
-        }
-        
-        .dark .ios-gradient {
-            background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
-        }
-        
-        /* Menu hover effects */
-        .menu-item {
-            position: relative;
-        }
-        
-        .menu-item .menu-label {
-            opacity: 0;
-            transform: translateX(10px);
-            transition: all 0.2s ease;
-            pointer-events: none;
-        }
-        
-        .menu-item:hover .menu-label {
-            opacity: 1;
-            transform: translateX(0);
-            pointer-events: auto;
-        }
+{% extends "base.html" %}
 
-        /* Chat specific styles */
-        .chat-container {
-            scrollbar-width: thin;
-            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-        }
-
-        .chat-container::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .chat-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .chat-container::-webkit-scrollbar-thumb {
-            background-color: rgba(156, 163, 175, 0.5);
-            border-radius: 3px;
-        }
-
-        .message {
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
-</head>
-<body class="h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200 font-sans">
-    <div class="min-h-full">
-        <!-- Right Side Menu -->
-        <div class="fixed right-0 top-1/2 -translate-y-1/2 flex flex-col gap-4 p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-l-ios shadow-lg">
-            <!-- Theme Toggle -->
-            <button id="theme-toggle" class="menu-item p-3 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
-                <svg class="w-6 h-6 dark:hidden" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-                </svg>
-                <svg class="w-6 h-6 hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"></path>
-                </svg>
-                <span class="menu-label absolute right-full mr-2 px-2 py-1 bg-gray-800 text-white text-sm rounded whitespace-nowrap">Toggle Theme</span>
-            </button>
-
-            <!-- Language Toggle -->
-            <div class="menu-item relative">
-                <button id="lang-toggle" class="p-3 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
-                    <span class="text-lg">🌍</span>
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-white dark:bg-gray-800 rounded-ios shadow-lg overflow-hidden transition-all duration-200 ios-gradient">
+        <div class="p-6">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center" id="chat-title">Chat CTC</h1>
+            
+            <!-- Chat Container -->
+            <div class="chat-container h-[500px] overflow-y-auto mb-6 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-ios" id="chat-container"></div>
+            
+            <!-- Input Container -->
+            <div class="flex gap-4">
+                <input type="text" 
+                       id="query-input" 
+                       class="flex-grow px-4 py-3 rounded-ios border-2 border-gray-200 dark:border-gray-700 
+                              bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                              focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800
+                              transition-all duration-200"
+                       placeholder="Ask me anything..."
+                       autocomplete="off">
+                <button onclick="sendQuery()" 
+                        class="px-6 py-3 bg-primary-500 text-white rounded-ios hover:bg-primary-600 
+                               transition-all duration-200 font-medium">
+                    Send
                 </button>
-                <span class="menu-label absolute right-full mr-2 px-2 py-1 bg-gray-800 text-white text-sm rounded whitespace-nowrap">Change Language</span>
-                
-                <!-- Language Dropdown -->
-                <div id="lang-dropdown" class="hidden absolute right-full bottom-0 mb-2 mr-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-                    <button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
-                        <span>🇬🇧</span>
-                        <span>English</span>
-                    </button>
-                    <button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
-                        <span>🇵🇱</span>
-                        <span>Polski</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Terms Link -->
-            <a href="/terms" class="menu-item p-3 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                <span class="menu-label absolute right-full mr-2 px-2 py-1 bg-gray-800 text-white text-sm rounded whitespace-nowrap">Terms & Conditions</span>
-            </a>
-        </div>
-
-        <!-- Main Content -->
-        <div class="max-w-4xl mx-auto px-4 py-8">
-            <div class="bg-white dark:bg-gray-800 rounded-ios shadow-lg overflow-hidden transition-all duration-200 ios-gradient">
-                <div class="p-6">
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center" id="chat-title">Chat CTC</h1>
-                    
-                    <!-- Chat Container -->
-                    <div class="chat-container h-[500px] overflow-y-auto mb-6 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-ios" id="chat-container"></div>
-                    
-                    <!-- Input Container -->
-                    <div class="flex gap-4">
-                        <input type="text" 
-                               id="query-input" 
-                               class="flex-grow px-4 py-3 rounded-ios border-2 border-gray-200 dark:border-gray-700 
-                                      bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-                                      focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800
-                                      transition-all duration-200"
-                               placeholder="Ask me anything..."
-                               autocomplete="off">
-                        <button onclick="sendQuery()" 
-                                class="px-6 py-3 bg-primary-500 text-white rounded-ios hover:bg-primary-600 
-                                       transition-all duration-200 font-medium">
-                            Send
-                        </button>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        const chatContainer = document.getElementById('chat-container');
-        const queryInput = document.getElementById('query-input');
-        const chatTitle = document.getElementById('chat-title');
-        const sendButton = document.querySelector('button[onclick="sendQuery()"]');
-        const MAX_INPUT_LENGTH = 600;
-        const MAX_OUTPUT_LENGTH = 300;
+<style>
+    /* Chat specific styles */
+    .chat-container {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+    }
 
-        // Translations object
-        const translations = {
-            en: {
-                title: 'Chat CTC',
-                placeholder: 'Ask me anything...',
-                send: 'Send',
-                error: 'An error occurred while processing your request.',
-                thinking: 'Thinking...',
-                messageTooLong: 'Message too long ({{length}}/{{max}} characters)',
-                terms: 'Terms & Conditions',
-                toggleTheme: 'Toggle Theme',
-                changeLanguage: 'Change Language',
-                english: 'English',
-                polish: 'Polish',
-                menu: {
-                    terms: 'Terms & Conditions',
-                    theme: 'Toggle Theme',
-                    language: 'Change Language'
-                }
-            },
-            pl: {
-                title: 'Chat CTC (Chaysh to Człowieku)',
-                placeholder: 'Zapytaj mnie o cokolwiek...',
-                send: 'Wyślij',
-                error: 'Wystąpił błąd podczas przetwarzania żądania.',
-                thinking: 'Myślę...',
-                messageTooLong: 'Wiadomość zbyt długa ({{length}}/{{max}} znaków)',
-                terms: 'Regulamin',
-                toggleTheme: 'Zmień motyw',
-                changeLanguage: 'Zmień język',
-                english: 'Angielski',
-                polish: 'Polski',
-                menu: {
-                    terms: 'Regulamin',
-                    theme: 'Zmień motyw',
-                    language: 'Zmień język'
-                }
-            }
-        };
+    .chat-container::-webkit-scrollbar {
+        width: 6px;
+    }
 
-        // Update UI text based on language
-        function updateUIText(lang) {
-            const t = translations[lang];
-            chatTitle.textContent = t.title;
-            queryInput.placeholder = t.placeholder;
-            sendButton.textContent = t.send;
-            
-            // Update menu labels
-            document.querySelectorAll('.menu-label').forEach(label => {
-                if (label.textContent.includes('Terms') || label.textContent.includes('Regulamin')) {
-                    label.textContent = t.menu.terms;
-                } else if (label.textContent.includes('Theme') || label.textContent.includes('motyw')) {
-                    label.textContent = t.menu.theme;
-                } else if (label.textContent.includes('Language') || label.textContent.includes('język')) {
-                    label.textContent = t.menu.language;
-                }
+    .chat-container::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .chat-container::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.5);
+        border-radius: 3px;
+    }
+
+    .message {
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<script>
+    const chatContainer = document.getElementById('chat-container');
+    const queryInput = document.getElementById('query-input');
+    const chatTitle = document.getElementById('chat-title');
+    const sendButton = document.querySelector('button[onclick="sendQuery()"]');
+    const MAX_INPUT_LENGTH = 600;
+    const MAX_OUTPUT_LENGTH = 300;
+
+    // Chat-specific translations
+    const chatTranslations = {
+        en: {
+            title: 'Chat CTC',
+            placeholder: 'Ask me anything...',
+            send: 'Send',
+            error: 'An error occurred while processing your request.',
+            thinking: 'Thinking...',
+            messageTooLong: 'Message too long ({{length}}/{{max}} characters)'
+        },
+        pl: {
+            title: 'Chat CTC (Chaysh to Człowieku)',
+            placeholder: 'Zapytaj mnie o cokolwiek...',
+            send: 'Wyślij',
+            error: 'Wystąpił błąd podczas przetwarzania żądania.',
+            thinking: 'Myślę...',
+            messageTooLong: 'Wiadomość zbyt długa ({{length}}/{{max}} znaków)'
+        }
+    };
+
+    // Update chat UI text based on language
+    function updateChatUIText(lang) {
+        const t = chatTranslations[lang];
+        chatTitle.textContent = t.title;
+        queryInput.placeholder = t.placeholder;
+        sendButton.textContent = t.send;
+    }
+
+    // Initialize chat UI with saved language
+    const savedLang = getCookie('lang') || 'en';
+    updateChatUIText(savedLang);
+
+    // Listen for language changes
+    document.addEventListener('languageChanged', (e) => {
+        updateChatUIText(e.detail.lang);
+    });
+
+    // Send query function
+    async function sendQuery() {
+        const query = queryInput.value.trim();
+        if (!query) return;
+
+        // Check input length
+        if (query.length > MAX_INPUT_LENGTH) {
+            alert(chatTranslations[savedLang].messageTooLong
+                .replace('{{length}}', query.length)
+                .replace('{{max}}', MAX_INPUT_LENGTH));
+            return;
+        }
+
+        // Add user message
+        addMessage('user', query);
+        queryInput.value = '';
+
+        // Add thinking indicator
+        const thinkingId = addMessage('assistant', chatTranslations[savedLang].thinking, true);
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query })
             });
 
-            // Update language dropdown options
-            const langButtons = langDropdown.querySelectorAll('button');
-            langButtons[0].querySelector('span:last-child').textContent = t.english;
-            langButtons[1].querySelector('span:last-child').textContent = t.polish;
-        }
+            const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
 
-        // Theme toggle functionality
-        const themeToggle = document.getElementById('theme-toggle');
-        const html = document.documentElement;
-        
-        // Set default theme to dark
-        if (!('theme' in localStorage)) {
-            localStorage.theme = 'dark';
+            // Remove thinking indicator
+            removeMessage(thinkingId);
+
+            // Add assistant response
+            addMessage('assistant', data.response);
+
+        } catch (error) {
+            console.error('Chat error:', error);
+            removeMessage(thinkingId);
+            addMessage('error', chatTranslations[savedLang].error);
         }
-        
-        // Apply saved theme
-        if (localStorage.theme === 'dark') {
-            html.classList.add('dark');
+    }
+
+    // Add message to chat
+    function addMessage(role, content, isThinking = false) {
+        const messageDiv = document.createElement('div');
+        const messageId = Date.now();
+        messageDiv.id = `message-${messageId}`;
+        messageDiv.className = `message mb-4 ${role === 'user' ? 'text-right' : ''}`;
+
+        const bubble = document.createElement('div');
+        bubble.className = `inline-block px-4 py-2 rounded-ios max-w-[80%] ${
+            role === 'user' 
+                ? 'bg-primary-500 text-white' 
+                : role === 'error'
+                    ? 'bg-red-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
+        }`;
+
+        if (isThinking) {
+            bubble.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 bg-current rounded-full animate-bounce"></div>
+                    <div class="w-2 h-2 bg-current rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    <div class="w-2 h-2 bg-current rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+                </div>
+            `;
         } else {
-            html.classList.remove('dark');
+            bubble.textContent = content;
         }
 
-        // Toggle theme
-        themeToggle.addEventListener('click', () => {
-            html.classList.toggle('dark');
-            localStorage.theme = html.classList.contains('dark') ? 'dark' : 'light';
-        });
+        messageDiv.appendChild(bubble);
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
 
-        // Language dropdown functionality
-        const langToggle = document.getElementById('lang-toggle');
-        const langDropdown = document.getElementById('lang-dropdown');
-        
-        langToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            langDropdown.classList.toggle('hidden');
-        });
+        return messageId;
+    }
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', () => {
-            langDropdown.classList.add('hidden');
-        });
-
-        // Language selection
-        const langButtons = langDropdown.querySelectorAll('button');
-        langButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const lang = button.querySelector('span:last-child').textContent;
-                const langCode = lang === translations.pl.polish ? 'pl' : 'en';
-                localStorage.setItem('language', langCode);
-                updateUIText(langCode);
-                langDropdown.classList.add('hidden');
-            });
-        });
-
-        // Initialize language
-        const savedLang = localStorage.getItem('language') || 'en';
-        updateUIText(savedLang);
-
-        function truncateText(text, maxLength) {
-            return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
+    // Remove message from chat
+    function removeMessage(messageId) {
+        const message = document.getElementById(`message-${messageId}`);
+        if (message) {
+            message.remove();
         }
+    }
 
-        function addMessage(content, isUser = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message mb-4 p-4 rounded-ios max-w-[80%] ${
-                isUser 
-                    ? 'ml-auto bg-primary-500 text-white' 
-                    : 'mr-auto bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-            }`;
-            
-            // Truncate assistant messages
-            const displayContent = isUser ? content : truncateText(content, MAX_OUTPUT_LENGTH);
-            messageDiv.textContent = displayContent;
-            
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+    // Handle Enter key
+    queryInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendQuery();
         }
+    });
 
-        function addError(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'mb-4 p-4 rounded-ios bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400';
-            errorDiv.textContent = message;
-            chatContainer.appendChild(errorDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        function addSuggestions(suggestions) {
-            const suggestionsDiv = document.createElement('div');
-            suggestionsDiv.className = 'mt-4 flex flex-wrap gap-2';
-            
-            suggestions.forEach(suggestion => {
-                const suggestionButton = document.createElement('button');
-                suggestionButton.className = 'px-4 py-2 text-sm rounded-full ' +
-                    'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 ' +
-                    'hover:bg-gray-300 dark:hover:bg-gray-500 transition-all duration-200';
-                suggestionButton.textContent = suggestion;
-                suggestionButton.onclick = () => {
-                    queryInput.value = suggestion;
-                    sendQuery();
-                };
-                suggestionsDiv.appendChild(suggestionButton);
-            });
-            
-            chatContainer.appendChild(suggestionsDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        async function sendQuery() {
-            const query = queryInput.value.trim();
-            if (!query) return;
-
-            // Add user message
-            addMessage(query, true);
-            queryInput.value = '';
-
-            // Add loading indicator
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'text-center text-gray-500 dark:text-gray-400';
-            loadingDiv.textContent = translations[localStorage.getItem('language') || 'en'].thinking;
-            chatContainer.appendChild(loadingDiv);
-
-            try {
-                const response = await fetch('/api/ask', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        query,
-                        lang: localStorage.getItem('language') || 'en'
-                    })
-                });
-
-                const data = await response.json();
-                
-                // Remove loading indicator
-                chatContainer.removeChild(loadingDiv);
-                
-                if (data.error) {
-                    addError(data.error);
-                    return;
-                }
-
-                // Add assistant message
-                addMessage(data.response);
-
-                // Add suggestions if any
-                if (data.suggestions && data.suggestions.length > 0) {
-                    addSuggestions(data.suggestions);
-                }
-            } catch (error) {
-                // Remove loading indicator
-                chatContainer.removeChild(loadingDiv);
-                
-                console.error('Chat error:', error);
-                addError(translations[localStorage.getItem('language') || 'en'].error);
-            }
-        }
-
-        // Handle Enter key
-        queryInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendQuery();
-            }
-        });
-
-        // Focus input on page load
-        queryInput.focus();
-    </script>
-</body>
-</html> 
+    // Focus input on load
+    queryInput.focus();
+</script>
+{% endblock %} 
