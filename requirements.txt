@@ -1,9 +1,7 @@
-fastapi
-flask
-flask-cors
-python-dotenv
-gunicorn
-httpx
-pydantic
-uvicorn
-jinja2 
+flask==3.0.0
+flask-cors==4.0.0
+python-dotenv==1.0.0
+gunicorn==21.2.0
+httpx==0.25.0
+pydantic>=2.3,<3.0
+uvicorn==0.29.0 

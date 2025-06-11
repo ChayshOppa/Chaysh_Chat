@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify, render_template
 from src.core.assistant import Assistant
-from src.core.config import detect_language
 import asyncio
 from functools import wraps
 
@@ -14,9 +13,8 @@ def async_route(f):
     return wrapped
 
 @app.route("/")
-def home():
-    lang = detect_language(request)
-    return render_template("home.html", request=request, lang=lang)
+def index():
+    return render_template('chat.html')
 
 @app.route("/terms")
 def terms():
@@ -28,7 +26,7 @@ async def ask():
     try:
         data = request.get_json()
         query = data.get('query', '')
-        lang = detect_language(request)
+        lang = data.get('lang', 'en')  # Default to English if not specified
         
         if not query:
             return jsonify({"error": "No query provided"}), 400
