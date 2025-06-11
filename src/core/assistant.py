@@ -1,36 +1,33 @@
 import os
 import httpx
 from typing import Dict, Any, List
-from dotenv import load_dotenv
 
-load_dotenv()
+# Only load .env in development
+if os.environ.get("FLASK_ENV") != "production":
+    from dotenv import load_dotenv
+    load_dotenv()
 
 class Assistant:
     def __init__(self):
-        self.api_key = os.getenv('OPENROUTER_API_KEY')
+        # Get API key directly from environment
+        self.api_key = os.getenv("OPENROUTER_API_KEY")
+        if not self.api_key:
+            print("ERROR: OPENROUTER_API_KEY not found in environment")
+            raise Exception("OPENROUTER_API_KEY not found in environment")
+            
+        print(f"API key present: {bool(self.api_key)}")
+        
         self.api_url = os.getenv('OPENROUTER_API_URL', 'https://openrouter.ai/api/v1/chat/completions')
         self.model = os.getenv('MODEL', 'mistral-7b-instruct')
-        
-        # Debug logging for API key
-        print(f"API Key loaded: {bool(self.api_key)}")
-        if not self.api_key:
-            print("WARNING: OPENROUTER_API_KEY not found in environment variables")
         
     async def process_query(self, query: str) -> Dict[str, Any]:
         """Process a user query and return AI response with suggestions."""
         try:
-            if not self.api_key:
-                return {
-                    "error": "API key not configured",
-                    "response": "I apologize, but I'm currently unable to process requests due to a configuration issue. Please try again later.",
-                    "suggestions": []
-                }
-
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
-                "HTTP-Referer": "https://chaysh-1.onrender.com",  # Required by OpenRouter
-                "X-Title": "Chaysh AI Assistant"  # Required by OpenRouter
+                "HTTP-Referer": "https://chaysh-1.onrender.com",
+                "X-Title": "Chaysh AI Assistant"
             }
             
             data = {
