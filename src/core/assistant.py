@@ -17,11 +17,21 @@ if not api_key:
 class Assistant:
     def __init__(self):
         self.api_url = "https://openrouter.ai/api/v1/chat/completions"
-        self.model = "gpt-3.5-turbo"
+        self.model = "openai/gpt-4.1-nano"  # Updated to GPT-4.1 Nano
+        self.max_tokens = 300  # Limit response length
+        self.temperature = 0.7  # Balanced creativity
+        self.top_p = 0.9  # Increased determinism
+        
+    def _truncate_prompt(self, prompt: str, max_length: int = 600) -> str:
+        """Truncate prompt to max length."""
+        return prompt[:max_length] if len(prompt) > max_length else prompt
         
     async def process_query(self, query: str) -> Dict[str, Any]:
         """Process a user query and return AI response with suggestions."""
         try:
+            # Truncate user input
+            truncated_query = self._truncate_prompt(query)
+            
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
@@ -33,13 +43,14 @@ class Assistant:
                 "model": self.model,
                 "messages": [
                     {"role": "system", "content": "You are Chaysh, a helpful AI assistant. Provide clear, concise responses and relevant suggestions."},
-                    {"role": "user", "content": query}
+                    {"role": "user", "content": truncated_query}
                 ],
-                "temperature": 0.7,
-                "max_tokens": 1000
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens,
+                "top_p": self.top_p
             }
             
-            print(f"Making API request to {self.api_url}")
+            print(f"Making API request to {self.api_url} with model {self.model}")
             
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -59,14 +70,15 @@ class Assistant:
                 response.raise_for_status()
                 result = response.json()
                 
-                # Extract the assistant's message
+                # Extract and truncate the assistant's message
                 assistant_message = result['choices'][0]['message']['content']
+                truncated_response = self._truncate_prompt(assistant_message, 300)
                 
                 # Generate suggestions based on the query
-                suggestions = self._generate_suggestions(query)
+                suggestions = self._generate_suggestions(truncated_query)
                 
                 return {
-                    "response": assistant_message,
+                    "response": truncated_response,
                     "suggestions": suggestions
                 }
                 

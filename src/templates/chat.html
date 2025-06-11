@@ -209,11 +209,21 @@
     <script>
         const chatContainer = document.getElementById('chat-container');
         const queryInput = document.getElementById('query-input');
+        const MAX_INPUT_LENGTH = 600;
+        const MAX_OUTPUT_LENGTH = 300;
+
+        function truncateText(text, maxLength) {
+            return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
+        }
 
         function addMessage(content, isUser = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
-            messageDiv.textContent = content;
+            
+            // Truncate assistant messages
+            const displayContent = isUser ? content : truncateText(content, MAX_OUTPUT_LENGTH);
+            messageDiv.textContent = displayContent;
+            
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
@@ -249,8 +259,14 @@
             const query = queryInput.value.trim();
             if (!query) return;
 
+            // Truncate input if needed
+            const truncatedQuery = truncateText(query, MAX_INPUT_LENGTH);
+            if (truncatedQuery !== query) {
+                addError("Your message was truncated to 600 characters.");
+            }
+
             // Add user message
-            addMessage(query, true);
+            addMessage(truncatedQuery, true);
             queryInput.value = '';
             queryInput.disabled = true;
 
@@ -266,7 +282,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ query })
+                    body: JSON.stringify({ query: truncatedQuery })
                 });
 
                 const data = await response.json();
@@ -297,6 +313,14 @@
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendQuery();
+            }
+        });
+
+        // Add input length indicator
+        queryInput.addEventListener('input', (e) => {
+            const length = e.target.value.length;
+            if (length > MAX_INPUT_LENGTH) {
+                addError(`Message too long (${length}/${MAX_INPUT_LENGTH} characters)`);
             }
         });
 

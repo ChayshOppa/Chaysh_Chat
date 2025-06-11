@@ -4,9 +4,47 @@
 
 [Live Demo](https://chaysh.onrender.com/)
 
-# Chaysh
+# Chaysh AI Assistant
 
-A Flask-based AI assistant application that processes queries and generates structured responses.
+A modern AI assistant powered by GPT-4.1 Nano via OpenRouter API.
+
+## Features
+
+- Clean, modern chat interface
+- Real-time AI responses
+- Smart suggestions
+- Token-efficient processing
+- Mobile-responsive design
+
+## Technical Details
+
+- **Assistant Model**: openai/gpt-4.1-nano via OpenRouter
+- **Token Optimization**:
+  - Input limit: 600 characters
+  - Output limit: 300 characters
+  - Temperature: 0.7 (balanced creativity)
+  - Top-p: 0.9 (increased determinism)
+
+## Development
+
+1. Clone the repository
+2. Install dependencies: `pip install -r requirements.txt`
+3. Set up environment variables:
+   - `OPENROUTER_API_KEY`: Your OpenRouter API key
+   - `FLASK_DEBUG`: Set to true for development
+4. Run the app: `python src/main.py`
+
+## Deployment
+
+The app is configured for deployment on Render with:
+- Python 3.11
+- Gunicorn WSGI server
+- Environment variable management
+- Automatic HTTPS
+
+## License
+
+MIT License
 
 ## Setup
 
