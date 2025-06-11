@@ -1,74 +1,37 @@
-from flask import Blueprint, request, jsonify, current_app, render_template
-from app.core.assistant import Assistant
-import logging
+from flask import Blueprint, request, jsonify, render_template
+from app.services.openrouter_service import OpenRouterService
+import asyncio
 
-# Create two blueprints - one for the homepage and one for the API
-bp = Blueprint('search', __name__)
-api_bp = Blueprint('api', __name__, url_prefix='/api')
-logger = logging.getLogger(__name__)
+# Create a single blueprint for all routes
+bp = Blueprint('main', __name__)
+openrouter_service = OpenRouterService()
 
 @bp.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
 
-@api_bp.route('/query', methods=['POST'])
-async def query():
+@bp.route('/api/search', methods=['POST'])
+def search():
     try:
         data = request.get_json()
+        query = data.get('query', '').strip()
         
-        # Validate request data
-        if not data or 'query' not in data:
+        if not query:
             return jsonify({
-                'success': False,
-                'error': 'Missing query parameter',
-                'results': [{
-                    'name': 'Error',
-                    'description': ['Please provide a search query.'],
-                    'source_info': 'Input validation',
-                    'suggestions': [],
-                    'actions': []
-                }]
+                "error": "Query is required",
+                "suggestions": [{"text": "Please enter a search term", "category": "input"}]
             }), 400
 
-        # Get language preference (default to English)
-        language = request.headers.get('X-Language', 'en')
-        if language not in ['en', 'pl']:
-            language = 'en'
-
-        # Get context if provided
-        context = data.get('context', None)
-
-        # Initialize assistant with configuration
-        assistant = Assistant(
-            api_key=current_app.config['OPENROUTER_API_KEY'],
-            api_url=current_app.config['OPENROUTER_API_URL']
-        )
-
-        # Process query
-        result = await assistant.process_query(
-            query=data['query'],
-            context=context,
-            language=language
-        )
-
-        # Clean up
-        await assistant.close()
-
-        return jsonify({
-            'success': True,
-            'results': [result]
-        })
+        # Run the async function in the event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        response = loop.run_until_complete(openrouter_service.get_ai_response(query))
+        loop.close()
+        
+        return jsonify(response)
 
     except Exception as e:
-        logger.error(f"Error processing query: {str(e)}", exc_info=True)
         return jsonify({
-            'success': False,
-            'error': str(e),
-            'results': [{
-                'name': 'Error',
-                'description': ['An error occurred while processing your request.'],
-                'source_info': 'System error',
-                'suggestions': [],
-                'actions': []
-            }]
+            "error": str(e),
+            "suggestions": [{"text": "Try again", "category": "retry"}]
         }), 500 

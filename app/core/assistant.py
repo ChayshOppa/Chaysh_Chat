@@ -2,7 +2,9 @@ import logging
 import os
 import json
 import re
+import httpx
 from typing import Dict, Optional
+from app.core.prompt import BASE_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -33,20 +35,29 @@ class Assistant:
         Returns:
             Dict containing structured response
         """
-        # Simulate raw AI response from OpenRouter (replace with actual API call)
-        raw_response = """
-        ```json
-        {
-          "name": "iPhone 14 Pro",
-          "description": ["Latest Apple smartphone", "Advanced camera system", "A16 Bionic chip"],
-          "source_info": "Compiled from Apple.com and tech sources",
-          "suggestions": [
-            {"text": "Compare with iPhone 15", "category": "comparison"},
-            {"text": "See camera details", "category": "spec"}
-          ]
+        # Real call to OpenRouter API
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
         }
-        ```
-        """
+        body = {
+            "model": os.getenv("MODEL", "mistral-7b-instruct"),
+            "messages": [
+                {"role": "system", "content": BASE_PROMPT},
+                {"role": "user", "content": query}
+            ],
+            "temperature": 0.7,
+            "max_tokens": 400
+        }
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=body)
+                response.raise_for_status()
+                raw_response = response.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            logger.error("OpenRouter API request failed: %s", e)
+            return self._get_fallback_response(query)
+
         flask_debug = os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
         if flask_debug:
             logger.debug("Raw AI response: %s", raw_response)

@@ -73,57 +73,79 @@ document.getElementById('search-form').addEventListener('submit', async (e) => {
     document.getElementById('results').innerHTML = '';
 
     try {
-        const response = await fetch('/api/query', {
+        const response = await fetch('/api/search', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-Language': navigator.language.startsWith('pl') ? 'pl' : 'en'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ query })
         });
 
         const data = await response.json();
         
-        if (data.success && data.results && data.results.length > 0) {
-            data.results.forEach(result => {
-                const template = document.getElementById('result-template');
-                const clone = template.content.cloneNode(true);
-                
-                // Set result content
-                clone.querySelector('.result-name').textContent = result.name;
-                
-                // Format description points
-                const descriptionDiv = clone.querySelector('.result-description');
-                result.description.forEach(point => {
-                    const p = document.createElement('p');
-                    p.className = 'text-gray-700 dark:text-gray-300';
-                    p.textContent = point;
-                    descriptionDiv.appendChild(p);
-                });
-                
-                // Set source info
-                clone.querySelector('.result-source').textContent = result.source_info;
-                
-                // Add suggestions
-                const suggestionsDiv = clone.querySelector('.result-suggestions');
-                if (result.suggestions && result.suggestions.length > 0) {
-                    result.suggestions.slice(0, 5).forEach(suggestion => {
-                        const button = document.createElement('button');
-                        button.className = 'inline-block px-4 py-2 mr-2 mb-2 text-sm rounded-full ' +
-                                        'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 ' +
-                                        'hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors';
-                        button.textContent = suggestion.text;
-                        suggestionsDiv.appendChild(button);
-                    });
-                }
-                
-                document.getElementById('results').appendChild(clone);
-            });
-        } else {
-            throw new Error(data.error || 'Failed to get results');
+        if (data.mode === 'error') {
+            throw new Error(data.description[0] || 'Failed to get results');
         }
+
+        // Create result card
+        const template = document.getElementById('result-template');
+        const clone = template.content.cloneNode(true);
+        
+        // Set result content
+        clone.querySelector('.result-name').textContent = data.name;
+        
+        // Format description points
+        const descriptionDiv = clone.querySelector('.result-description');
+        data.description.forEach(point => {
+            const p = document.createElement('p');
+            p.className = 'text-gray-700 dark:text-gray-300';
+            p.textContent = point;
+            descriptionDiv.appendChild(p);
+        });
+        
+        // Set source info
+        clone.querySelector('.result-source').textContent = data.source_info;
+        
+        // Add suggestions
+        const suggestionsDiv = clone.querySelector('.result-suggestions');
+        if (data.suggestions && data.suggestions.length > 0) {
+            data.suggestions.forEach(suggestion => {
+                const button = document.createElement('button');
+                button.className = 'inline-block px-4 py-2 mr-2 mb-2 text-sm rounded-full ' +
+                                'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 ' +
+                                'hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors';
+                button.textContent = suggestion.text;
+                button.onclick = () => {
+                    document.getElementById('search-input').value = suggestion.text;
+                    document.getElementById('search-form').dispatchEvent(new Event('submit'));
+                };
+                suggestionsDiv.appendChild(button);
+            });
+        }
+
+        // Add actions if any
+        if (data.actions && data.actions.length > 0) {
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'mt-4 flex flex-wrap gap-2';
+            data.actions.forEach(action => {
+                const button = document.createElement('button');
+                button.className = 'px-4 py-2 text-sm rounded-lg ' +
+                                'bg-primary-500 text-white ' +
+                                'hover:bg-primary-600 transition-colors';
+                button.textContent = action.label;
+                button.onclick = () => {
+                    document.getElementById('search-input').value = action.query;
+                    document.getElementById('search-form').dispatchEvent(new Event('submit'));
+                };
+                actionsDiv.appendChild(button);
+            });
+            clone.querySelector('.result-description').appendChild(actionsDiv);
+        }
+        
+        document.getElementById('results').appendChild(clone);
     } catch (error) {
         console.error('Search error:', error);
+        document.getElementById('error').textContent = error.message;
         document.getElementById('error').classList.remove('hidden');
     } finally {
         document.getElementById('loading').classList.add('hidden');

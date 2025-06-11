@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
+from app.routes.search import bp
 
 # Load environment variables
 load_dotenv()
@@ -34,9 +35,7 @@ def create_app(test_config=None):
     CORS(app)
 
     # Register blueprints
-    from app.routes import search
-    app.register_blueprint(search.bp)
-    app.register_blueprint(search.api_bp)
+    app.register_blueprint(bp)
 
     # Register error handlers
     @app.errorhandler(404)

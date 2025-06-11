@@ -71,3 +71,54 @@ The application will automatically deploy when you push changes to your reposito
 - Production: Uses environment variables set in Render dashboard
 - No code changes needed between environments
 - Sensitive values are never committed to the repository 
+
+# Chaysh Project Rules & Progress
+
+## Project Rules
+
+1. **Environment Variables**
+   - Store sensitive keys (e.g., `OPENROUTER_API_KEY`) in a `.env` file at the project root.
+   - Use `python-dotenv` to load environment variables in both development and production.
+
+2. **API Integration**
+   - The backend uses the OpenRouter API for AI-powered search.
+   - The API key is required and must be valid for requests to succeed.
+
+3. **Model Selection**
+   - The default model is now `openai/gpt-3.5-turbo` (previously `anthropic/claude-3-opus:beta`).
+   - To change the model, update `DEFAULT_MODEL` in `app/config.py`.
+
+4. **Token and Character Limits**
+   - `max_tokens` is set to the maximum allowed by your OpenRouter credits (currently 288).
+   - The AI response is limited to 600 characters for the main description.
+   - Suggestions are always included and are clickable.
+
+5. **Frontend/Backend Interaction**
+   - The frontend sends search queries to the Flask backend.
+   - Clicking a suggestion triggers a new backend request using the suggestion as the new query.
+   - All suggestions are guaranteed to work and generate new responses.
+
+6. **Error Handling**
+   - If the API returns a 402 error (insufficient credits), the backend will not attempt to exceed the allowed `max_tokens`.
+   - The frontend should display a user-friendly message if credits are exhausted.
+
+7. **Development Workflow**
+   - All changes are saved and committed after successful testing.
+   - The backend and frontend are kept in sync regarding API endpoints and expected data formats.
+
+---
+
+## Progress So Far
+
+- Environment variable loading and debugging completed.
+- `.env` file is now reliably loaded and used by the backend.
+- OpenRouter API integration is working, with dynamic handling of token limits based on available credits.
+- Model switched from Claude 3 to GPT-3.5-turbo for improved compatibility and cost control.
+- Frontend search and clickable suggestions are fully functional.
+- All suggestions now trigger new backend requests and generate new answers.
+- Error handling for API credit limits is in place.
+- Project rules and documentation updated to reflect current state and best practices.
+
+---
+
+For further changes, update this file and keep the rules and progress in sync with the codebase. 
