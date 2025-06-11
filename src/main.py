@@ -23,7 +23,11 @@ def detect_language(request):
 @app.route("/")
 def home():
     lang = detect_language(request)
-    return render_template("home.html", request=request, lang=lang)
+    welcome_message = {
+        'en': "Hi! I'm Chaysh, your AI assistant. How can I help you today?",
+        'pl': "Cześć! Jestem Chaysh, Twój asystent AI. Jak mogę Ci pomóc?"
+    }
+    return render_template("chat.html", request=request, lang=lang, welcome_message=welcome_message[lang])
 
 @app.route("/terms")
 def terms():
