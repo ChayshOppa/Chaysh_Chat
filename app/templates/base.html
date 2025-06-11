@@ -125,6 +125,26 @@
     </div>
 
     <script>
+        // Translations object
+        const translations = {
+            en: {
+                title: 'Chat CTC',
+                menu: {
+                    terms: 'Terms & Conditions',
+                    theme: 'Toggle Theme',
+                    language: 'Change Language'
+                }
+            },
+            pl: {
+                title: 'Chat CTC (Chaysh to Człowieku)',
+                menu: {
+                    terms: 'Regulamin',
+                    theme: 'Zmień motyw',
+                    language: 'Zmień język'
+                }
+            }
+        };
+
         // Theme toggle functionality
         const themeToggle = document.getElementById('theme-toggle');
         const html = document.documentElement;
@@ -165,26 +185,50 @@
         const langButtons = langDropdown.querySelectorAll('button');
         langButtons.forEach(button => {
             button.addEventListener('click', () => {
-                const lang = button.textContent.trim().split('\n')[1];
-                localStorage.setItem('language', lang);
-                // Update UI text based on language
-                updateUILanguage(lang);
+                const lang = button.querySelector('span:last-child').textContent;
+                const langCode = lang === 'Polski' ? 'pl' : 'en';
+                
+                // Set cookie for 1 year
+                document.cookie = `lang=${langCode}; path=/; max-age=31536000`;
+                
+                // Update UI instantly
+                updateUILanguage(langCode);
+                langDropdown.classList.add('hidden');
             });
         });
 
         // Update UI language
         function updateUILanguage(lang) {
-            const title = document.querySelector('title');
-            if (lang === 'Polski') {
-                title.textContent = 'Chat CTC (Chaysh to Człowieku)';
-            } else {
-                title.textContent = 'Chat CTC';
-            }
-            // Add more language-specific updates here
+            const t = translations[lang];
+            
+            // Update title
+            document.title = t.title;
+            
+            // Update menu labels
+            document.querySelectorAll('.menu-label').forEach(label => {
+                if (label.textContent.includes('Terms') || label.textContent.includes('Regulamin')) {
+                    label.textContent = t.menu.terms;
+                } else if (label.textContent.includes('Theme') || label.textContent.includes('motyw')) {
+                    label.textContent = t.menu.theme;
+                } else if (label.textContent.includes('Language') || label.textContent.includes('język')) {
+                    label.textContent = t.menu.language;
+                }
+            });
+
+            // Update language dropdown options
+            const langButtons = langDropdown.querySelectorAll('button');
+            langButtons[0].querySelector('span:last-child').textContent = lang === 'pl' ? 'English' : 'Angielski';
+            langButtons[1].querySelector('span:last-child').textContent = lang === 'pl' ? 'Polski' : 'Polish';
         }
 
-        // Initialize language
-        const savedLang = localStorage.getItem('language') || 'English';
+        // Initialize language from cookie
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        const savedLang = getCookie('lang') || 'en';
         updateUILanguage(savedLang);
     </script>
 </body>
