@@ -24,8 +24,8 @@ class Assistant:
         
         # Language-specific system prompts
         self.system_prompts = {
-            'en': "You are Chaysh, a helpful AI assistant. Provide clear, concise responses and relevant suggestions in English.",
-            'pl': "Jesteś Chaysh, pomocnym asystentem AI. Odpowiadaj jasno i zwięźle po polsku, dostarczając odpowiednie sugestie."
+            'en': "You are a helpful AI assistant. Please provide clear and concise responses in English.",
+            'pl': "Jesteś pomocnym asystentem AI. Proszę udzielaj jasnych i zwięzłych odpowiedzi po polsku."
         }
         
         # Language-specific suggestions
@@ -49,11 +49,16 @@ class Assistant:
     async def process_query(self, query: str, lang: str = 'en') -> Dict[str, Any]:
         """Process a user query and return AI response with suggestions."""
         try:
-            # Truncate user input
-            truncated_query = self._truncate_prompt(query)
-            
             # Get language-specific system prompt
             system_prompt = self.system_prompts.get(lang, self.system_prompts['en'])
+            
+            # Add language-specific prefix to query
+            lang_prefix = {
+                'en': "Answer this in English:\n",
+                'pl': "Odpowiedz po polsku:\n"
+            }.get(lang, "")
+            
+            prefixed_query = f"{lang_prefix}{query}"
             
             headers = {
                 "Authorization": f"Bearer {api_key}",
@@ -66,7 +71,7 @@ class Assistant:
                 "model": self.model,
                 "messages": [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": truncated_query}
+                    {"role": "user", "content": prefixed_query}
                 ],
                 "temperature": self.temperature,
                 "max_tokens": self.max_tokens,
@@ -101,7 +106,7 @@ class Assistant:
                 truncated_response = self._truncate_prompt(assistant_message, 300)
                 
                 # Get language-specific suggestions
-                suggestions = self._generate_suggestions(truncated_query, lang)
+                suggestions = self._generate_suggestions(prefixed_query, lang)
                 
                 return {
                     "response": truncated_response,
