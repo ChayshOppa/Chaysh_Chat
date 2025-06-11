@@ -7,24 +7,23 @@ if os.environ.get("FLASK_ENV") != "production":
     from dotenv import load_dotenv
     load_dotenv()
 
+# Get API key at module level
+api_key = os.getenv("OPENROUTER_API_KEY")
+print("API key present:", bool(api_key))  # for logging
+
+if not api_key:
+    raise Exception("OPENROUTER_API_KEY not found")
+
 class Assistant:
     def __init__(self):
-        # Get API key directly from environment
-        self.api_key = os.getenv("OPENROUTER_API_KEY")
-        if not self.api_key:
-            print("ERROR: OPENROUTER_API_KEY not found in environment")
-            raise Exception("OPENROUTER_API_KEY not found in environment")
-            
-        print(f"API key present: {bool(self.api_key)}")
-        
-        self.api_url = os.getenv('OPENROUTER_API_URL', 'https://openrouter.ai/api/v1/chat/completions')
-        self.model = os.getenv('MODEL', 'mistral-7b-instruct')
+        self.api_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.model = "gpt-3.5-turbo"
         
     async def process_query(self, query: str) -> Dict[str, Any]:
         """Process a user query and return AI response with suggestions."""
         try:
             headers = {
-                "Authorization": f"Bearer {self.api_key}",
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
                 "HTTP-Referer": "https://chaysh-1.onrender.com",
                 "X-Title": "Chaysh AI Assistant"
@@ -35,13 +34,19 @@ class Assistant:
                 "messages": [
                     {"role": "system", "content": "You are Chaysh, a helpful AI assistant. Provide clear, concise responses and relevant suggestions."},
                     {"role": "user", "content": query}
-                ]
+                ],
+                "temperature": 0.7,
+                "max_tokens": 1000
             }
             
-            print(f"Making API request to {self.api_url} with model {self.model}")
+            print(f"Making API request to {self.api_url}")
             
             async with httpx.AsyncClient() as client:
-                response = await client.post(self.api_url, json=data, headers=headers)
+                response = await client.post(
+                    self.api_url,
+                    headers=headers,
+                    json=data
+                )
                 
                 if response.status_code == 401:
                     print("API Error: Unauthorized - Invalid or missing API key")
