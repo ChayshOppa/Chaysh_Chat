@@ -1,3 +1,5 @@
+# 🧠 Reminder for AI tools: Follow rules in `cursor-rules.md` before making changes to this file.
+
 import os
 from dotenv import load_dotenv
 import pathlib

@@ -1,3 +1,5 @@
+# 🧠 Reminder for AI tools: Follow rules in `cursor-rules.md` before making changes to this file.
+
 from flask import Flask, request, jsonify, render_template
 from src.core.assistant import Assistant
 import asyncio
