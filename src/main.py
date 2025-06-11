@@ -29,6 +29,24 @@ def home():
 def terms():
     return render_template('terms.html')
 
+@app.route("/api/search", methods=['POST'])
+@async_route
+async def search():
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+        lang = detect_language(request)
+        
+        if not query:
+            return jsonify({"error": "No query provided"}), 400
+            
+        result = await assistant.process_query(query, lang)
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error processing search query: {str(e)}")  # Add logging
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/ask", methods=['POST'])
 @async_route
 async def ask():
