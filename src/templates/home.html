@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if lang == 'pl' %}Chaysh AI - Asystent{% else %}Chaysh AI - Assistant{% endif %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                {% if lang == 'pl' %}
+                    Witaj w Chaysh AI
+                {% else %}
+                    Welcome to Chaysh AI
+                {% endif %}
+            </h1>
+            <p class="text-lg text-gray-600 dark:text-gray-300">
+                {% if lang == 'pl' %}
+                    Twój inteligentny asystent AI
+                {% else %}
+                    Your intelligent AI assistant
+                {% endif %}
+            </p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-4xl mx-auto">
+            <!-- Chat Container -->
+            <div id="chat-container" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+                <div class="flex flex-col space-y-4">
+                    <!-- Welcome Message -->
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-10 h-10 rounded-full gradient-bg flex items-center justify-center">
+                                <span class="text-white text-xl">🤖</span>
+                            </div>
+                        </div>
+                        <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+                            <p class="text-gray-800 dark:text-gray-200">
+                                {% if lang == 'pl' %}
+                                    Cześć! Jestem Chaysh, Twój asystent AI. Jak mogę Ci dzisiaj pomóc?
+                                {% else %}
+                                    Hi! I'm Chaysh, your AI assistant. How can I help you today?
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="flex space-x-4">
+                <input type="text" 
+                       id="query-input"
+                       class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="{% if lang == 'pl' %}Zapytaj mnie o cokolwiek...{% else %}Ask me anything...{% endif %}">
+                <button onclick="sendQuery()" 
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                    {% if lang == 'pl' %}Wyślij{% else %}Send{% endif %}
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Basic query handling
+        function sendQuery() {
+            const input = document.getElementById('query-input');
+            const query = input.value.trim();
+            
+            if (query) {
+                // Add user message to chat
+                const chatContainer = document.getElementById('chat-container');
+                const userMessage = document.createElement('div');
+                userMessage.className = 'flex items-start space-x-4';
+                userMessage.innerHTML = `
+                    <div class="flex-1 bg-blue-100 dark:bg-blue-900 rounded-lg p-4 ml-12">
+                        <p class="text-gray-800 dark:text-gray-200">${query}</p>
+                    </div>
+                `;
+                chatContainer.appendChild(userMessage);
+                
+                // Clear input
+                input.value = '';
+                
+                // TODO: Add API call to process query
+            }
+        }
+
+        // Handle Enter key
+        document.getElementById('query-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendQuery();
+            }
+        });
+    </script>
+</body>
+</html> 
