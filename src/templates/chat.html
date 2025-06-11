@@ -192,7 +192,17 @@
                 send: 'Send',
                 error: 'An error occurred while processing your request.',
                 thinking: 'Thinking...',
-                messageTooLong: 'Message too long ({{length}}/{{max}} characters)'
+                messageTooLong: 'Message too long ({{length}}/{{max}} characters)',
+                terms: 'Terms & Conditions',
+                toggleTheme: 'Toggle Theme',
+                changeLanguage: 'Change Language',
+                english: 'English',
+                polish: 'Polish',
+                menu: {
+                    terms: 'Terms & Conditions',
+                    theme: 'Toggle Theme',
+                    language: 'Change Language'
+                }
             },
             pl: {
                 title: 'Chat CTC (Chaysh to Człowieku)',
@@ -200,7 +210,17 @@
                 send: 'Wyślij',
                 error: 'Wystąpił błąd podczas przetwarzania żądania.',
                 thinking: 'Myślę...',
-                messageTooLong: 'Wiadomość zbyt długa ({{length}}/{{max}} znaków)'
+                messageTooLong: 'Wiadomość zbyt długa ({{length}}/{{max}} znaków)',
+                terms: 'Regulamin',
+                toggleTheme: 'Zmień motyw',
+                changeLanguage: 'Zmień język',
+                english: 'Angielski',
+                polish: 'Polski',
+                menu: {
+                    terms: 'Regulamin',
+                    theme: 'Zmień motyw',
+                    language: 'Zmień język'
+                }
             }
         };
 
@@ -210,6 +230,22 @@
             chatTitle.textContent = t.title;
             queryInput.placeholder = t.placeholder;
             sendButton.textContent = t.send;
+            
+            // Update menu labels
+            document.querySelectorAll('.menu-label').forEach(label => {
+                if (label.textContent.includes('Terms') || label.textContent.includes('Regulamin')) {
+                    label.textContent = t.menu.terms;
+                } else if (label.textContent.includes('Theme') || label.textContent.includes('motyw')) {
+                    label.textContent = t.menu.theme;
+                } else if (label.textContent.includes('Language') || label.textContent.includes('język')) {
+                    label.textContent = t.menu.language;
+                }
+            });
+
+            // Update language dropdown options
+            const langButtons = langDropdown.querySelectorAll('button');
+            langButtons[0].querySelector('span:last-child').textContent = t.english;
+            langButtons[1].querySelector('span:last-child').textContent = t.polish;
         }
 
         // Theme toggle functionality
@@ -252,10 +288,11 @@
         const langButtons = langDropdown.querySelectorAll('button');
         langButtons.forEach(button => {
             button.addEventListener('click', () => {
-                const lang = button.textContent.trim().split('\n')[1];
-                const langCode = lang === 'Polski' ? 'pl' : 'en';
+                const lang = button.querySelector('span:last-child').textContent;
+                const langCode = lang === translations.pl.polish ? 'pl' : 'en';
                 localStorage.setItem('language', langCode);
                 updateUIText(langCode);
+                langDropdown.classList.add('hidden');
             });
         });
 
