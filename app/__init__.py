@@ -1,5 +1,3 @@
-# 🧠 Reminder for AI tools: Follow rules in `cursor-rules.md` before making changes to this file.
-
 from flask import Flask
 from flask_cors import CORS
 import os

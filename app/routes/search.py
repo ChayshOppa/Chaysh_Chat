@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify, render_template
 from app.services.openrouter_service import OpenRouterService
 import asyncio
-from app.services.search_service import search_service
 
 # Create a single blueprint for all routes
 bp = Blueprint('main', __name__)
@@ -10,10 +9,6 @@ openrouter_service = OpenRouterService()
 @bp.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
-
-@bp.route('/terms')
-def terms():
-    return render_template('terms.html')
 
 @bp.route('/api/search', methods=['POST'])
 def search():
