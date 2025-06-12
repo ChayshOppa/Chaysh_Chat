@@ -2,7 +2,13 @@ from flask import Flask
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
+import logging
 from app.routes.search import bp
+from app.config import Config
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -14,8 +20,8 @@ def create_app(test_config=None):
     # Configure the app
     app.config.from_mapping(
         SECRET_KEY=os.environ.get('SECRET_KEY', 'dev'),
-        OPENROUTER_API_KEY=os.environ.get('OPENROUTER_API_KEY'),
-        OPENROUTER_API_URL=os.environ.get('OPENROUTER_API_URL', 'https://openrouter.ai/api/v1/chat/completions')
+        OPENROUTER_API_KEY=Config.OPENROUTER_API_KEY,
+        OPENROUTER_API_URL=Config.OPENROUTER_API_URL
     )
 
     if test_config is None:

@@ -5,6 +5,7 @@ import re
 import httpx
 from typing import Dict, Optional
 from app.core.prompt import BASE_PROMPT
+from app.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -14,14 +15,15 @@ class Assistant:
     def __init__(self):
         """Initialize the assistant with configuration."""
         self.mode = "product"  # Default mode as per project rules
-        self.api_key = os.getenv("OPENROUTER_API_KEY")
+        self.api_key = Config.OPENROUTER_API_KEY
+        self.api_url = Config.OPENROUTER_API_URL
         flask_debug = os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
 
         if not self.api_key:
-            print("[Chaysh] ❌ Missing OPENROUTER_API_KEY")
+            logger.error("[Chaysh] ❌ Missing OPENROUTER_API_KEY")
             raise ValueError("OPENROUTER_API_KEY is not set. Add it to your .env file for local development or as a secret in Render's dashboard.")
         elif flask_debug:
-            print("[Chaysh] Loaded OPENROUTER_API_KEY ✅")
+            logger.info("[Chaysh] Loaded OPENROUTER_API_KEY ✅")
     
     async def process_query(self, query: str, context: Optional[Dict] = None, language: str = 'en') -> Dict:
         """
@@ -41,17 +43,17 @@ class Assistant:
             "Content-Type": "application/json"
         }
         body = {
-            "model": os.getenv("MODEL", "mistral-7b-instruct"),
+            "model": Config.DEFAULT_MODEL,
             "messages": [
                 {"role": "system", "content": BASE_PROMPT},
                 {"role": "user", "content": query}
             ],
             "temperature": 0.7,
-            "max_tokens": 400
+            "max_tokens": Config.MAX_TOKENS
         }
         try:
             async with httpx.AsyncClient(timeout=20) as client:
-                response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=body)
+                response = await client.post(self.api_url, headers=headers, json=body)
                 response.raise_for_status()
                 raw_response = response.json()["choices"][0]["message"]["content"]
         except Exception as e:

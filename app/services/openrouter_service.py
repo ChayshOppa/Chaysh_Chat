@@ -1,6 +1,9 @@
 import httpx
 import json
+import logging
 from app.config import Config
+
+logger = logging.getLogger(__name__)
 
 class OpenRouterService:
     def __init__(self):
@@ -16,10 +19,11 @@ class OpenRouterService:
     async def get_ai_response(self, query: str) -> dict:
         try:
             if not self.api_key:
+                logger.error("API key is not configured")
                 return self._get_error_response("API key is not configured")
 
-            # Use a fixed max_tokens of 288 (maximum allowed by current credits)
-            max_tokens = 288
+            # Use Config settings for tokens
+            max_tokens = Config.MAX_TOKENS
             char_limit = 600  # Limit the generated answer to 600 characters
 
             system_prompt = f"""You are a structured assistant that provides detailed information about products and topics.\nAnalyze the query and provide information in the following JSON format:\n{{\n    \"mode\": \"product\",\n    \"name\": \"Main topic/product name\",\n    \"description\": [\n        \"Key point 1\",\n        \"Key point 2\",\n        \"Key point 3\",\n        \"Key point 4\",\n        \"Summary\"\n    ],\n    \"source_info\": \"Brief source information\",\n    \"suggestions\": [\n        {{\"text\": \"Related topic 1\", \"category\": \"related\"}},\n        {{\"text\": \"Related topic 2\", \"category\": \"related\"}}\n    ],\n    \"actions\": [\n        {{\"type\": \"chat\", \"label\": \"Ask More\", \"query\": \"Related question\"}}\n    ]\n}}\n\nProvide detailed information (up to 600 characters) and include suggestions.\nAlways return valid JSON matching this structure.\n\nIMPORTANT: Use the suggestions as new keywords to generate a new response when clicked."""
@@ -47,9 +51,11 @@ class OpenRouterService:
                     return self._format_response(ai_response, char_limit)
                 else:
                     error_detail = response.text
+                    logger.error(f"API Error {response.status_code}: {error_detail}")
                     return self._get_error_response(f"API Error {response.status_code}: {error_detail}")
 
         except Exception as e:
+            logger.error(f"Error in get_ai_response: {str(e)}")
             return self._get_error_response(f"Error: {str(e)}")
 
     def _format_response(self, ai_response: str, char_limit: int = 600) -> dict:
