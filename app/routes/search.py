@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify, render_template
 from app.services.openrouter_service import OpenRouterService
 import asyncio
-from app.services.search_service import search_service
 
 # Create a single blueprint for all routes
 bp = Blueprint('main', __name__)
