@@ -126,11 +126,11 @@
                 
                 <!-- Language Dropdown -->
                 <div id="lang-dropdown" class="hidden absolute right-full bottom-0 mb-2 mr-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-                    <button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
+                    <button data-lang="en" class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
                         <span>🇬🇧</span>
                         <span>English</span>
                     </button>
-                    <button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
+                    <button data-lang="pl" class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
                         <span>🇵🇱</span>
                         <span>Polski</span>
                     </button>
@@ -288,8 +288,7 @@
         const langButtons = langDropdown.querySelectorAll('button');
         langButtons.forEach(button => {
             button.addEventListener('click', () => {
-                const lang = button.querySelector('span:last-child').textContent;
-                const langCode = lang === translations.pl.polish ? 'pl' : 'en';
+                const langCode = button.dataset.lang;
                 localStorage.setItem('language', langCode);
                 updateUIText(langCode);
                 langDropdown.classList.add('hidden');
