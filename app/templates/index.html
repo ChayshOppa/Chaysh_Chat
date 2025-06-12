@@ -4,8 +4,8 @@
 <div class="max-w-4xl mx-auto px-4">
     <!-- Header Section -->
     <div class="text-center mb-12 mt-8">
-        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4 transition-colors">Chat CTC</h1>
-        <p class="text-lg text-gray-600 dark:text-gray-300 mb-8 transition-colors">AI-powered search assistant</p>
+        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4 transition-colors" id="main-title">Chat CTC</h1>
+        <p class="text-lg text-gray-600 dark:text-gray-300 mb-8 transition-colors" id="subtitle">AI-powered search assistant</p>
         
         <!-- Search Form -->
         <form id="search-form" class="relative max-w-2xl mx-auto">
@@ -153,6 +153,23 @@ document.getElementById('search-form').addEventListener('submit', async (e) => {
         document.getElementById('loading').classList.add('hidden');
     }
 });
+
+// Update UI elements with localized text
+function updateLocalizedUI(lang) {
+    document.getElementById('main-title').textContent = locales[lang].title;
+    document.getElementById('subtitle').textContent = locales[lang].subtitle;
+    document.getElementById('search-input').placeholder = locales[lang].searchPlaceholder;
+    document.getElementById('error').textContent = locales[lang].error;
+}
+
+// Listen for language changes
+document.addEventListener('languageChanged', (e) => {
+    updateLocalizedUI(e.detail.lang);
+});
+
+// Initialize UI with current language
+const currentLang = localStorage.getItem('language') || 'en';
+updateLocalizedUI(currentLang);
 
 // Focus search input on page load
 document.addEventListener('DOMContentLoaded', () => {
