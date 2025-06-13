@@ -153,7 +153,31 @@
                     <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center" id="chat-title">Chat CTC</h1>
                     
                     <!-- Chat Container -->
-                    <div class="chat-container h-[500px] overflow-y-auto mb-6 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-ios" id="chat-container"></div>
+                    <div class="chat-container h-[500px] overflow-y-auto mb-6 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-ios" id="chat-container">
+                        <div id="chat-messages">
+                            {% for message in messages %}
+                                <div class="chat-message {% if message.role == 'assistant' %}assistant{% else %}user{% endif %}">
+                                    {% if message.role == 'assistant' %}
+                                        {% if message.category %}
+                                            <div class="chat-category">📂 {{ message.category | capitalize }}</div>
+                                        {% endif %}
+                                        <div class="message-content">{{ message.content }}</div>
+                                        {% if message.suggestions %}
+                                            <div class="chat-suggestions">
+                                                {% for suggestion in message.suggestions %}
+                                                    <button class="chat-suggestion" onclick="handleSuggestionClick('{{ suggestion }}')">
+                                                        {{ suggestion }}
+                                                    </button>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="message-content">{{ message.content }}</div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                     
                     <!-- Input Container -->
                     <div class="flex gap-4">
@@ -409,6 +433,12 @@
 
         // Focus input on page load
         queryInput.focus();
+
+        function handleSuggestionClick(text) {
+            const input = document.querySelector("#query-input");
+            input.value = text;
+            document.querySelector("#chat-form").submit();
+        }
     </script>
 </body>
 </html> 
