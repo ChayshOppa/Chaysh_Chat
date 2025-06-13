@@ -2,121 +2,237 @@
 
 {% block content %}
 <div class="chat-container">
-    <!-- Hidden system tip -->
+    <!-- System Tip -->
     <div id="system-tip" class="system-tip" style="display: none;">
-        <div class="tip-content"></div>
-        <button class="tip-close" onclick="hideSystemTip()">×</button>
-    </div>
-
-    <!-- Chat messages -->
-    <div id="chat-messages" class="chat-messages"></div>
-
-    <!-- Loading indicator -->
-    <div id="loadingIndicator" class="loading hidden">
-        <div class="loading-dots">
-            <span></span>
-            <span></span>
-            <span></span>
+        <div class="tip-content">
+            <span id="tip-text"></span>
+            <button onclick="dismissTip()" class="dismiss-btn" aria-label="Dismiss tip">×</button>
         </div>
     </div>
 
-    <!-- Error bubble (hidden by default) -->
-    <div id="errorBubble" class="error-bubble hidden"></div>
+    <!-- Chat Messages -->
+    <div id="chat-messages" class="chat-messages"></div>
 
-    <!-- Token usage info (dev only) -->
-    <div id="tokenInfo" class="dev-debug"></div>
-
-    <!-- Input form -->
-    <form id="chat-form" class="chat-form">
+    <!-- Input Form -->
+    <form id="chat-form" class="chat-form" onsubmit="handleSubmit(event)">
         <div class="input-group">
-            <select id="category-override" class="category-select">
-                <option value="">Auto-detect category</option>
+            <select id="category-select" class="category-select">
+                <option value="">Auto-detect</option>
                 <option value="weather">Weather</option>
                 <option value="person">Person</option>
                 <option value="compare">Compare</option>
                 <option value="price">Price</option>
                 <option value="translate">Translate</option>
                 <option value="summarize">Summarize</option>
-                <option value="explain">Explain</option>
             </select>
-            <input type="text" id="message-input" placeholder="Type your message..." required>
-            <button type="submit">Send</button>
+            <input type="text" id="message-input" class="message-input" placeholder="Type your message..." required>
+            <button type="submit" class="send-btn">
+                <span class="send-icon">➤</span>
+            </button>
         </div>
     </form>
 </div>
 
 <style>
-/* System tip styles */
+/* System Tip */
 .system-tip {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background: var(--tip-bg);
+    border: 1px solid var(--tip-border);
     border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    position: relative;
+    padding: 12px;
+    margin-bottom: 16px;
     animation: fadeIn 0.3s ease-in-out;
 }
 
 .tip-content {
-    color: var(--text-primary);
-    font-size: 0.9rem;
-    line-height: 1.5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
 }
 
-.tip-close {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
+.dismiss-btn {
     background: none;
     border: none;
     color: var(--text-secondary);
+    font-size: 20px;
     cursor: pointer;
-    font-size: 1.2rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    transition: background-color 0.2s;
+    padding: 0;
+    line-height: 1;
 }
 
-.tip-close:hover {
-    background: var(--bg-hover);
+.dismiss-btn:hover {
+    color: var(--text-primary);
 }
 
-/* Category badge styles */
-.category-badge {
-    display: inline-block;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-    background: var(--accent-color);
+/* Chat Messages */
+.chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 16px;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.message {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 80%;
+}
+
+.message.user {
+    align-self: flex-end;
+}
+
+.message.assistant {
+    align-self: flex-start;
+}
+
+.message-content {
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: var(--message-bg);
+    color: var(--text-primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.message.user .message-content {
+    background: var(--primary-color);
     color: white;
 }
 
-/* Table styles */
-.ai-table {
+/* Category Badge */
+.category-badge {
+    font-size: 0.8em;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: var(--badge-bg);
+    color: var(--badge-text);
+    display: inline-block;
+    margin-bottom: 4px;
+}
+
+/* Tables */
+.table-container {
+    overflow-x: auto;
+    margin: 8px 0;
+}
+
+table {
     width: 100%;
     border-collapse: collapse;
-    margin: 1rem 0;
-    background: var(--bg-secondary);
+    background: var(--table-bg);
     border-radius: 8px;
     overflow: hidden;
 }
 
-.ai-table th,
-.ai-table td {
-    padding: 0.75rem;
+th, td {
+    padding: 12px;
     text-align: left;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--table-border);
 }
 
-.ai-table th {
-    background: var(--bg-hover);
+th {
+    background: var(--table-header-bg);
     font-weight: 600;
 }
 
-.ai-table tr:last-child td {
-    border-bottom: none;
+/* Input Form */
+.chat-form {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-primary);
+    padding: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.input-group {
+    display: flex;
+    gap: 8px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.category-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    min-width: 120px;
+}
+
+.message-input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.send-btn {
+    padding: 8px 16px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.send-btn:hover {
+    background: var(--primary-hover);
+}
+
+.send-icon {
+    font-size: 1.2em;
+}
+
+/* Loading State */
+.loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--message-bg);
+    border-radius: 12px;
+    color: var(--text-secondary);
+}
+
+.loading-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    background: var(--text-secondary);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out;
+}
+
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+
+/* Error Message */
+.error-message {
+    color: var(--error-color);
+    padding: 12px 16px;
+    background: var(--error-bg);
+    border-radius: 12px;
+    margin: 8px 0;
+}
+
+/* Token Usage */
+.token-usage {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    margin-top: 4px;
 }
 
 /* Animations */
@@ -125,288 +241,155 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Loading indicator styles */
-.loading {
-    text-align: center;
-    padding: 1rem;
-    margin: 1rem 0;
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
 }
 
-.loading-dots {
-    display: inline-flex;
-    gap: 0.5rem;
-}
-
-.loading-dots span {
-    width: 8px;
-    height: 8px;
-    background: var(--accent-color);
-    border-radius: 50%;
-    animation: blink 1.2s infinite;
-}
-
-.loading-dots span:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.loading-dots span:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-@keyframes blink {
-    0%, 100% { opacity: 0.2; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1); }
-}
-
-/* Error bubble styles */
-.error-bubble {
-    background: var(--error-color, #ff4c4c);
-    color: white;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    margin: 1rem 0;
-    font-weight: 500;
-    animation: fadeIn 0.3s ease-in-out;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.error-bubble::before {
-    content: "⚠️";
-    font-size: 1.2rem;
-}
-
-/* Token info styles */
-.dev-debug {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    padding: 0.5rem;
-    text-align: center;
-    font-family: monospace;
-    opacity: 0.7;
-}
-
-/* Dark mode support */
+/* Dark Mode */
 @media (prefers-color-scheme: dark) {
-    .system-tip {
-        background: var(--bg-secondary-dark);
-        border-color: var(--border-color-dark);
-    }
-    
-    .tip-content {
-        color: var(--text-primary-dark);
-    }
-    
-    .tip-close {
-        color: var(--text-secondary-dark);
-    }
-    
-    .tip-close:hover {
-        background: var(--bg-hover-dark);
-    }
-    
-    .ai-table {
-        background: var(--bg-secondary-dark);
-    }
-    
-    .ai-table th,
-    .ai-table td {
-        border-color: var(--border-color-dark);
-    }
-    
-    .ai-table th {
-        background: var(--bg-hover-dark);
-    }
-    
-    .loading-dots span {
-        background: var(--accent-color-dark, #60a5fa);
-    }
-    
-    .error-bubble {
-        background: var(--error-color-dark, #ef4444);
-    }
-    
-    .dev-debug {
-        color: var(--text-secondary-dark);
+    :root {
+        --tip-bg: #2d3748;
+        --tip-border: #4a5568;
+        --message-bg: #2d3748;
+        --badge-bg: #4a5568;
+        --badge-text: #e2e8f0;
+        --table-bg: #2d3748;
+        --table-border: #4a5568;
+        --table-header-bg: #4a5568;
+        --error-bg: #742a2a;
+        --error-color: #feb2b2;
     }
 }
 </style>
 
 <script>
-// Language definitions
-const languages = {
-    en: {
-        categoryBadge: "Category:",
-        copyButton: "Copy",
-        copiedButton: "Copied!",
-        errorMessage: "An error occurred. Please try again.",
-        categories: {
-            weather: "Weather",
-            person: "Person",
-            compare: "Compare",
-            price: "Price",
-            translate: "Translate",
-            summarize: "Summarize",
-            explain: "Explain"
-        }
-    },
-    pl: {
-        categoryBadge: "Kategoria:",
-        copyButton: "Kopiuj",
-        copiedButton: "Skopiowano!",
-        errorMessage: "Wystąpił błąd. Spróbuj ponownie.",
-        categories: {
-            weather: "Pogoda",
-            person: "Osoba",
-            compare: "Porównanie",
-            price: "Cena",
-            translate: "Tłumaczenie",
-            summarize: "Podsumowanie",
-            explain: "Wyjaśnienie"
-        }
-    }
-};
+// Session management
+function clearChat() {
+    document.getElementById('chat-messages').innerHTML = '';
+}
 
-// Apply language changes
-function applyLanguage(lang) {
-    document.querySelectorAll('[data-lang]').forEach(element => {
-        const key = element.getAttribute('data-lang');
-        if (languages[lang][key]) {
-            element.textContent = languages[lang][key];
-        }
-    });
+function resetTip() {
+    sessionStorage.removeItem('tipShown');
+    document.getElementById('system-tip').style.display = 'none';
 }
 
 // System tip handling
-function showSystemTip(content) {
-    const tip = document.getElementById('system-tip');
-    const tipContent = tip.querySelector('.tip-content');
-    tipContent.innerHTML = content;
-    tip.style.display = 'block';
+function showTip(content) {
+    if (!sessionStorage.getItem('tipShown')) {
+        const tip = document.getElementById('system-tip');
+        const tipText = document.getElementById('tip-text');
+        tipText.textContent = content;
+        tip.style.display = 'block';
+        sessionStorage.setItem('tipShown', 'true');
+    }
 }
 
-function hideSystemTip() {
-    const tip = document.getElementById('system-tip');
-    tip.style.display = 'none';
+function dismissTip() {
+    document.getElementById('system-tip').style.display = 'none';
 }
 
 // Response formatting
-function formatResponse(text, category) {
-    if (!text) return '';
-    
-    // Handle table formatting for specific categories
-    if (category === 'compare' || category === 'price') {
+function formatResponse(text) {
+    // Handle markdown tables
+    if (text.includes('|') && text.includes('-')) {
         const lines = text.split('\n');
-        if (lines.length > 1) {
-            const headers = lines[0].split('|').map(h => h.trim()).filter(h => h);
-            const rows = lines.slice(1).map(line => 
-                line.split('|').map(cell => cell.trim()).filter(cell => cell)
-            );
-            
-            if (headers.length > 0 && rows.length > 0) {
-                return `
-                    <table class="ai-table">
-                        <thead>
-                            <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
-                        </thead>
-                        <tbody>
-                            ${rows.map(row => `
-                                <tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
+        let inTable = false;
+        let tableHtml = '<div class="table-container"><table>';
+        
+        for (const line of lines) {
+            if (line.includes('|') && !line.includes('---')) {
+                if (!inTable) {
+                    inTable = true;
+                    tableHtml = '<div class="table-container"><table>';
+                }
+                const cells = line.split('|').filter(cell => cell.trim());
+                tableHtml += '<tr>' + cells.map(cell => `<td>${cell.trim()}</td>`).join('') + '</tr>';
+            } else if (line.includes('---')) {
+                // Skip separator line
+                continue;
+            } else {
+                if (inTable) {
+                    tableHtml += '</table></div>';
+                    inTable = false;
+                }
+                tableHtml += line + '<br>';
             }
         }
+        
+        if (inTable) {
+            tableHtml += '</table></div>';
+        }
+        
+        return tableHtml;
     }
     
     return text;
 }
 
 // Message handling
-function addMessage(content, isUser = false, category = null) {
+function addMessage(content, isUser = false, category = null, tokens = null) {
     const messagesDiv = document.getElementById('chat-messages');
     const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+    messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
     
-    let messageContent = '';
+    let messageContent = `<div class="message-content">${formatResponse(content)}</div>`;
     
     if (category) {
-        const lang = document.documentElement.lang || 'en';
-        messageContent += `
-            <div class="category-badge">
-                ${languages[lang].categoryBadge} ${languages[lang].categories[category] || category}
-            </div>
-        `;
+        const badge = document.createElement('div');
+        badge.className = 'category-badge';
+        badge.textContent = category;
+        messageDiv.appendChild(badge);
     }
     
-    messageContent += `<div class="message-content">${formatResponse(content, category)}</div>`;
+    messageDiv.innerHTML += messageContent;
     
-    if (!isUser) {
-        messageContent += `
-            <button class="copy-button" onclick="copyToClipboard(this, '${content.replace(/'/g, "\\'")}')">
-                ${languages[document.documentElement.lang || 'en'].copyButton}
-            </button>
-        `;
+    if (tokens && !isUser) {
+        const tokenUsage = document.createElement('div');
+        tokenUsage.className = 'token-usage';
+        tokenUsage.textContent = `Tokens: ${tokens.total} (prompt: ${tokens.prompt}, completion: ${tokens.completion})`;
+        messageDiv.appendChild(tokenUsage);
     }
     
-    messageDiv.innerHTML = messageContent;
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-// Copy to clipboard
-function copyToClipboard(button, text) {
-    navigator.clipboard.writeText(text).then(() => {
-        const lang = document.documentElement.lang || 'en';
-        button.textContent = languages[lang].copiedButton;
-        setTimeout(() => {
-            button.textContent = languages[lang].copyButton;
-        }, 2000);
-    });
-}
-
-// Loading state management
+// Loading state
 function showLoading() {
-    document.getElementById("loadingIndicator").classList.remove("hidden");
-    document.getElementById("chat-form").classList.add("disabled");
+    const messagesDiv = document.getElementById('chat-messages');
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'message assistant';
+    loadingDiv.innerHTML = `
+        <div class="loading">
+            <div class="loading-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <span>Thinking...</span>
+        </div>
+    `;
+    loadingDiv.id = 'loading-indicator';
+    messagesDiv.appendChild(loadingDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
 function hideLoading() {
-    document.getElementById("loadingIndicator").classList.add("hidden");
-    document.getElementById("chat-form").classList.remove("disabled");
-}
-
-// Error handling
-function showError(message) {
-    const errorBubble = document.getElementById("errorBubble");
-    const lang = document.documentElement.lang || 'en';
-    const defaultMessage = languages[lang].errorMessage;
-    errorBubble.textContent = message || defaultMessage;
-    errorBubble.classList.remove("hidden");
-    setTimeout(() => {
-        errorBubble.classList.add("hidden");
-    }, 5000);
-}
-
-// Token usage display
-function updateTokenInfo(tokens) {
-    if (!tokens) return;
-    
-    const tokenInfo = document.getElementById("tokenInfo");
-    if (tokenInfo) {
-        tokenInfo.textContent = `🧮 Prompt: ${tokens.prompt} | Completion: ${tokens.completion} | Total: ${tokens.total}`;
+    const loadingDiv = document.getElementById('loading-indicator');
+    if (loadingDiv) {
+        loadingDiv.remove();
     }
 }
 
-// Form handling
-document.getElementById('chat-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+// Form submission
+async function handleSubmit(event) {
+    event.preventDefault();
     
     const input = document.getElementById('message-input');
-    const categoryOverride = document.getElementById('category-override').value;
+    const categorySelect = document.getElementById('category-select');
     const message = input.value.trim();
+    const category = categorySelect.value;
     
     if (!message) return;
     
@@ -424,9 +407,9 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                message: message,
-                category_override: categoryOverride
-            }),
+                message,
+                category_override: category || undefined
+            })
         });
         
         const data = await response.json();
@@ -435,39 +418,35 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
             throw new Error(data.error);
         }
         
-        // Show system tip if provided
+        // Show tip if provided and not shown before
         if (data.tip) {
-            showSystemTip(data.tip);
+            showTip(data.tip);
         }
         
         // Add assistant message
-        addMessage(data.response, false, data.category);
-        
-        // Update token info if available
-        if (data.tokens) {
-            updateTokenInfo(data.tokens);
-        }
-        
-        // Debug log
-        if (data.category) {
-            console.log("Category:", data.category);
-        }
+        addMessage(data.response, false, data.category, data.tokens);
         
     } catch (error) {
-        console.error('Error:', error);
-        showError();
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'message assistant';
+        errorDiv.innerHTML = `
+            <div class="error-message">
+                ${error.message || 'An error occurred. Please try again.'}
+            </div>
+        `;
+        document.getElementById('chat-messages').appendChild(errorDiv);
     } finally {
         hideLoading();
     }
-});
+}
 
-// Language toggle handling
-document.querySelectorAll('.language-toggle').forEach(toggle => {
-    toggle.addEventListener('click', () => {
-        const lang = toggle.getAttribute('data-lang');
-        document.documentElement.lang = lang;
-        applyLanguage(lang);
-    });
-});
+// Initialize
+window.onload = () => {
+    clearChat();
+    resetTip();
+    if (os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")) {
+        console.log("Session started");
+    }
+};
 </script>
 {% endblock %} 

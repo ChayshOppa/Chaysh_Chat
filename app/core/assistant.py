@@ -12,6 +12,7 @@ from datetime import datetime
 import openai
 from .config import settings
 from src.prompt_categories import detect_category, DEFAULT_TIP, category_map
+from src.utils.cleaner import clean_gpt_reply, format_table_response
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ class Assistant:
         """
         messages = []
         
-        # Add system tip if no context exists
+        # Add system tip only if no context exists (first request)
         if not context:
             messages.append(DEFAULT_TIP)
         
@@ -72,30 +73,6 @@ class Assistant:
         messages.append({"role": "user", "content": rewritten_prompt})
         return messages
 
-    def clean_gpt_reply(self, reply: str) -> str:
-        """
-        Clean and format the GPT response.
-        Removes static-sounding GPT filler phrases and suggestions.
-        
-        Args:
-            reply: Raw response from GPT
-            
-        Returns:
-            Cleaned response text
-        """
-        # Remove suggestion-style endings and filler phrases
-        reply = re.sub(
-            r"(Can you elaborate.*?|Would you like more.*?|What specific aspects.*?|Would you like me to.*?|Is there anything else.*?)$",
-            "",
-            reply,
-            flags=re.IGNORECASE | re.DOTALL
-        )
-        
-        # Clean up any remaining whitespace
-        reply = reply.strip()
-        
-        return reply
-
     def get_response(
         self,
         user_input: str,
@@ -114,7 +91,7 @@ class Assistant:
             Dictionary containing response, context, tip, and category
         """
         try:
-            # Initialize tip handling
+            # Initialize tip handling - only show on first request
             initial_response = None
             if not context:
                 context = [DEFAULT_TIP]
@@ -133,7 +110,13 @@ class Assistant:
             
             # Extract and clean the response
             reply = response.choices[0].message.content
-            cleaned_reply = self.clean_gpt_reply(reply)
+            cleaned_reply = clean_gpt_reply(reply)
+            
+            # Format table response if needed
+            if category_override in ["compare", "price"] or (category_result := detect_category(user_input)) and category_result[0] in ["compare", "price"]:
+                formatted_reply = format_table_response(cleaned_reply)
+                if formatted_reply:
+                    cleaned_reply = formatted_reply
             
             # Get category from the last message
             category = None
@@ -162,7 +145,7 @@ class Assistant:
             return {
                 "response": cleaned_reply,
                 "context": new_context,
-                "tip": initial_response,
+                "tip": initial_response,  # Only set on first request
                 "category": category,
                 "tokens": tokens if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes") else None
             }
@@ -173,7 +156,7 @@ class Assistant:
             return {
                 "response": "I apologize, but I encountered an error. Please try using a category like 'compare' or 'weather'.",
                 "context": context or [],
-                "tip": DEFAULT_TIP["content"] if not context else None,
+                "tip": DEFAULT_TIP["content"] if not context else None,  # Only show tip on first request
                 "category": None,
                 "error": str(e) if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes") else None
             } 
