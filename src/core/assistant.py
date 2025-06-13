@@ -1,7 +1,6 @@
 import os
 import httpx
 from typing import Dict, Any, List
-from .category_classifier import classify_prompt, get_available_categories
 
 # Only load .env in development
 if os.environ.get("FLASK_ENV") != "production":
@@ -19,137 +18,28 @@ class Assistant:
     def __init__(self):
         self.api_url = "https://openrouter.ai/api/v1/chat/completions"
         self.model = "openai/gpt-4.1-nano"  # Updated to GPT-4.1 Nano
-        self.max_tokens = 500  # Increased token limit
+        self.max_tokens = 300  # Limit response length
         self.temperature = 0.7  # Balanced creativity
         self.top_p = 0.9  # Increased determinism
         
-        # Load available categories
-        self.categories = get_available_categories()
-        
-        # Base system prompts
-        self.base_prompts = {
+        # Language-specific system prompts
+        self.system_prompts = {
             'en': "You are Chaysh, a helpful AI assistant. Provide clear, concise responses and relevant suggestions in English.",
             'pl': "Jesteś Chaysh, pomocnym asystentem AI. Odpowiadaj jasno i zwięźle po polsku, dostarczając odpowiednie sugestie."
         }
         
-        # Category-specific system prompts
-        self.category_prompts = {
-            'electronics': {
-                'en': "You are Chaysh, an AI assistant specializing in electronics and technology. Provide expert advice about gadgets, devices, and technical solutions.",
-                'pl': "Jesteś Chaysh, asystentem AI specjalizującym się w elektronice i technologii. Zapewnij eksperckie porady dotyczące gadżetów, urządzeń i rozwiązań technicznych."
-            },
-            'sports': {
-                'en': "You are Chaysh, an AI assistant specializing in sports and fitness. Provide expert advice about training, equipment, and sports activities.",
-                'pl': "Jesteś Chaysh, asystentem AI specjalizującym się w sporcie i fitnessie. Zapewnij eksperckie porady dotyczące treningu, sprzętu i aktywności sportowych."
-            },
-            'travel': {
-                'en': "You are Chaysh, an AI assistant specializing in travel. Provide expert advice about destinations, planning, and travel tips.",
-                'pl': "Jesteś Chaysh, asystentem AI specjalizującym się w podróżach. Zapewnij eksperckie porady dotyczące destynacji, planowania i wskazówek podróżniczych."
-            },
-            'health': {
-                'en': "You are Chaysh, an AI assistant specializing in health and wellness. Provide expert advice about physical and mental health, while noting that you're not a medical professional.",
-                'pl': "Jesteś Chaysh, asystentem AI specjalizującym się w zdrowiu i dobrym samopoczuciu. Zapewnij eksperckie porady dotyczące zdrowia fizycznego i psychicznego, zaznaczając, że nie jesteś profesjonalistą medycznym."
-            },
-            'food': {
-                'en': "You are Chaysh, an AI assistant specializing in food and cooking. Provide expert advice about recipes, cooking techniques, and nutrition.",
-                'pl': "Jesteś Chaysh, asystentem AI specjalizującym się w jedzeniu i gotowaniu. Zapewnij eksperckie porady dotyczące przepisów, technik gotowania i żywienia."
-            },
-            'finance': {
-                'en': "You are Chaysh, an AI assistant specializing in finance. Provide expert advice about investments, savings, and financial planning, while noting that you're not a financial advisor.",
-                'pl': "Jesteś Chaysh, asystentem AI specjalizującym się w finansach. Zapewnij eksperckie porady dotyczące inwestycji, oszczędności i planowania finansowego, zaznaczając, że nie jesteś doradcą finansowym."
-            },
-            'legal': {
-                'en': "You are Chaysh, an AI assistant specializing in legal matters. Provide general legal information and guidance, while noting that you're not a lawyer and this isn't legal advice.",
-                'pl': "Jesteś Chaysh, asystentem AI specjalizującym się w sprawach prawnych. Zapewnij ogólne informacje i wskazówki prawne, zaznaczając, że nie jesteś prawnikiem i nie jest to porada prawna."
-            }
-        }
-        
-        # Category-specific suggestions
-        self.category_suggestions = {
-            'electronics': {
-                'en': [
-                    "What specific features are you looking for?",
-                    "Would you like to compare different models?",
-                    "Do you need help with troubleshooting?"
-                ],
-                'pl': [
-                    "Jakie konkretne funkcje Cię interesują?",
-                    "Czy chciałbyś porównać różne modele?",
-                    "Czy potrzebujesz pomocy w rozwiązywaniu problemów?"
-                ]
-            },
-            'sports': {
-                'en': [
-                    "What's your current fitness level?",
-                    "Are you looking for specific training tips?",
-                    "Do you need equipment recommendations?"
-                ],
-                'pl': [
-                    "Jaki jest Twój obecny poziom sprawności?",
-                    "Czy szukasz konkretnych wskazówek treningowych?",
-                    "Czy potrzebujesz rekomendacji sprzętu?"
-                ]
-            },
-            'travel': {
-                'en': [
-                    "What's your destination?",
-                    "Are you planning a specific type of trip?",
-                    "Do you need help with travel arrangements?"
-                ],
-                'pl': [
-                    "Jaki jest Twój cel podróży?",
-                    "Czy planujesz konkretny rodzaj wycieczki?",
-                    "Czy potrzebujesz pomocy w organizacji podróży?"
-                ]
-            },
-            'health': {
-                'en': [
-                    "What specific health concerns do you have?",
-                    "Are you looking for lifestyle advice?",
-                    "Would you like information about preventive care?"
-                ],
-                'pl': [
-                    "Jakie masz konkretne obawy zdrowotne?",
-                    "Czy szukasz porad dotyczących stylu życia?",
-                    "Czy chciałbyś informacji o profilaktyce?"
-                ]
-            },
-            'food': {
-                'en': [
-                    "What type of cuisine interests you?",
-                    "Are you looking for specific recipes?",
-                    "Do you need cooking tips?"
-                ],
-                'pl': [
-                    "Jaka kuchnia Cię interesuje?",
-                    "Czy szukasz konkretnych przepisów?",
-                    "Czy potrzebujesz wskazówek kulinarnych?"
-                ]
-            },
-            'finance': {
-                'en': [
-                    "What are your financial goals?",
-                    "Are you looking for investment advice?",
-                    "Do you need help with budgeting?"
-                ],
-                'pl': [
-                    "Jakie są Twoje cele finansowe?",
-                    "Czy szukasz porad inwestycyjnych?",
-                    "Czy potrzebujesz pomocy w budżetowaniu?"
-                ]
-            },
-            'legal': {
-                'en': [
-                    "What type of legal information do you need?",
-                    "Are you looking for general guidance?",
-                    "Do you need help understanding specific laws?"
-                ],
-                'pl': [
-                    "Jakich informacji prawnych potrzebujesz?",
-                    "Czy szukasz ogólnych wskazówek?",
-                    "Czy potrzebujesz pomocy w zrozumieniu konkretnych przepisów?"
-                ]
-            }
+        # Language-specific suggestions
+        self.suggestions = {
+            'en': [
+                "Can you elaborate on that?",
+                "What specific aspects are you interested in?",
+                "Would you like more detailed information?"
+            ],
+            'pl': [
+                "Czy możesz to rozwinąć?",
+                "Jakie konkretne aspekty Cię interesują?",
+                "Czy chciałbyś bardziej szczegółowe informacje?"
+            ]
         }
         
     def _truncate_prompt(self, prompt: str, max_length: int = 600) -> str:
@@ -162,14 +52,8 @@ class Assistant:
             # Truncate user input
             truncated_query = self._truncate_prompt(query)
             
-            # Classify the query
-            category = classify_prompt(truncated_query)
-            
-            # Get appropriate system prompt
-            if category in self.category_prompts:
-                system_prompt = self.category_prompts[category][lang]
-            else:
-                system_prompt = self.base_prompts[lang]
+            # Get language-specific system prompt
+            system_prompt = self.system_prompts.get(lang, self.system_prompts['en'])
             
             headers = {
                 "Authorization": f"Bearer {api_key}",
@@ -206,8 +90,7 @@ class Assistant:
                     return {
                         "error": "Authentication failed",
                         "response": error_msg,
-                        "suggestions": [],
-                        "category": category
+                        "suggestions": []
                     }
                 
                 response.raise_for_status()
@@ -215,17 +98,14 @@ class Assistant:
                 
                 # Extract and truncate the assistant's message
                 assistant_message = result['choices'][0]['message']['content']
-                truncated_response = self._truncate_prompt(assistant_message, 500)  # Increased truncation limit
+                truncated_response = self._truncate_prompt(assistant_message, 300)
                 
-                # Get category-specific suggestions and limit to 3
-                suggestions = self._generate_suggestions(truncated_query, category, lang)
-                if suggestions and len(suggestions) > 3:
-                    suggestions = suggestions[:3]
+                # Get language-specific suggestions
+                suggestions = self._generate_suggestions(truncated_query, lang)
                 
                 return {
                     "response": truncated_response,
-                    "suggestions": suggestions,
-                    "category": category
+                    "suggestions": suggestions
                 }
                 
         except httpx.HTTPStatusError as e:
@@ -236,8 +116,7 @@ class Assistant:
             return {
                 "error": f"API request failed: {e.response.status_code}",
                 "response": error_msg,
-                "suggestions": [],
-                "category": "unknown"
+                "suggestions": []
             }
         except Exception as e:
             print(f"Error processing query: {str(e)}")
@@ -247,12 +126,9 @@ class Assistant:
             return {
                 "error": str(e),
                 "response": error_msg,
-                "suggestions": [],
-                "category": "unknown"
+                "suggestions": []
             }
     
-    def _generate_suggestions(self, query: str, category: str, lang: str = 'en') -> List[str]:
-        """Generate relevant follow-up suggestions based on the query, category, and language."""
-        if category in self.category_suggestions:
-            return self.category_suggestions[category][lang][:3]
-        return []  # Return empty list for unknown categories 
+    def _generate_suggestions(self, query: str, lang: str = 'en') -> List[str]:
+        """Generate relevant follow-up suggestions based on the query and language."""
+        return self.suggestions.get(lang, self.suggestions['en'])[:3]  # Return top 3 suggestions 

@@ -1,9 +1,0 @@
-{
-  "electronics": ["phone", "tv", "camera", "computer", "battery"],
-  "sports": ["soccer", "fitness", "gym", "basketball", "running"],
-  "travel": ["flights", "hotels", "visa", "backpacking", "airports"],
-  "health": ["mental health", "workout", "medicine", "supplements"],
-  "food": ["recipes", "cooking", "restaurants", "nutrition"],
-  "finance": ["stocks", "crypto", "investing", "savings"],
-  "legal": ["contracts", "rights", "employment law", "licenses"]
-} 
