@@ -6,6 +6,16 @@
     <div class="text-center mb-12 mt-8">
         <h1 id="chat-title" class="text-4xl font-bold text-gray-900 dark:text-white mb-4 transition-colors">Chat CTC</h1>
         
+        <!-- Enhanced System Tip -->
+        <div id="system-tip" class="hidden mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-ios relative transition-all duration-500 opacity-0">
+            <button id="close-tip" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <div id="system-tip-content" class="prose dark:prose-invert max-w-none text-sm pr-6"></div>
+        </div>
+        
         <!-- Language Toggle -->
         <div class="flex justify-center gap-4 mb-8">
             <button id="lang-en" class="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
@@ -43,19 +53,6 @@
         <!-- Messages will be dynamically inserted here -->
     </div>
 
-    <!-- Suggestions -->
-    <div class="mt-8 flex flex-wrap justify-center gap-4">
-        <button id="suggestion-1" class="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
-            Can you elaborate on that?
-        </button>
-        <button id="suggestion-2" class="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
-            What specific aspects are you interested in?
-        </button>
-        <button id="suggestion-3" class="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
-            Would you like more detailed information?
-        </button>
-    </div>
-
     <!-- Loading Indicator -->
     <div id="loading" class="hidden text-center py-8">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-500 border-t-transparent"></div>
@@ -73,18 +70,12 @@ const locales = {
     en: {
         title: "Chat CTC",
         placeholder: "Ask me anything...",
-        send: "Send",
-        suggestion1: "Can you elaborate on that?",
-        suggestion2: "What specific aspects are you interested in?",
-        suggestion3: "Would you like more detailed information?"
+        send: "Send"
     },
     pl: {
         title: "Czat CTC",
         placeholder: "Zadaj pytanie...",
-        send: "Wyślij",
-        suggestion1: "Czy możesz to rozwinąć?",
-        suggestion2: "Jakie konkretnie aspekty Cię interesują?",
-        suggestion3: "Czy chcesz bardziej szczegółowe informacje?"
+        send: "Wyślij"
     }
 };
 
@@ -95,11 +86,38 @@ function applyLanguage(lang) {
     document.getElementById("chat-title").innerText = t.title;
     document.getElementById("message-input").placeholder = t.placeholder;
     document.getElementById("send-button").innerText = t.send;
-    document.getElementById("suggestion-1").innerText = t.suggestion1;
-    document.getElementById("suggestion-2").innerText = t.suggestion2;
-    document.getElementById("suggestion-3").innerText = t.suggestion3;
     localStorage.setItem("lang", lang);
 }
+
+// System tip management
+function showSystemTip(text) {
+    const tipContainer = document.getElementById('system-tip');
+    const tipContent = document.getElementById('system-tip-content');
+    
+    // Convert markdown-style formatting to HTML
+    const formattedText = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`(.*?)`/g, '<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">$1</code>')
+        .replace(/\n/g, '<br>');
+    
+    tipContent.innerHTML = formattedText;
+    tipContainer.classList.remove('hidden');
+    
+    // Trigger reflow for animation
+    tipContainer.offsetHeight;
+    tipContainer.classList.add('opacity-100');
+}
+
+function hideSystemTip() {
+    const tipContainer = document.getElementById('system-tip');
+    tipContainer.classList.remove('opacity-100');
+    setTimeout(() => {
+        tipContainer.classList.add('hidden');
+    }, 500); // Match transition duration
+}
+
+// Event listeners for system tip
+document.getElementById('close-tip').addEventListener('click', hideSystemTip);
 
 // Language button event listeners
 document.getElementById("lang-en").addEventListener("click", () => applyLanguage("en"));
@@ -119,6 +137,7 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
     // Reset UI state
     document.getElementById('error').classList.add('hidden');
     document.getElementById('loading').classList.remove('hidden');
+    hideSystemTip();
 
     try {
         const response = await fetch('/api/chat', {
@@ -145,6 +164,11 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
             </div>
         `;
         messagesDiv.appendChild(messageElement);
+
+        // Handle system tip if present
+        if (data.tip) {
+            showSystemTip(data.tip);
+        }
         
         // Clear input
         document.getElementById('message-input').value = '';
@@ -156,14 +180,6 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
     } finally {
         document.getElementById('loading').classList.add('hidden');
     }
-});
-
-// Suggestion click handlers
-document.querySelectorAll('#suggestion-1, #suggestion-2, #suggestion-3').forEach(button => {
-    button.addEventListener('click', () => {
-        document.getElementById('message-input').value = button.innerText;
-        document.getElementById('chat-form').dispatchEvent(new Event('submit'));
-    });
 });
 
 // Focus input on page load

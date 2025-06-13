@@ -9,6 +9,18 @@ from app.config import Config
 
 logger = logging.getLogger(__name__)
 
+# Default welcome tip for new sessions
+DEFAULT_TIP = {
+    "role": "system",
+    "content": (
+        "💡 You should provide a category or description of what you're looking for to have a better experience.\n\n"
+        "**Examples:**\n"
+        "`price` – for product comparisons\n"
+        "`event` or `timetable` (Polish: kiedy gra / kiedy będzie) – for sports, music, or game schedules\n"
+        "`compare`, `define`, `summary`, `contact`, etc."
+    )
+}
+
 class Assistant:
     """AI Assistant for processing queries and generating structured responses."""
     
@@ -35,29 +47,36 @@ class Assistant:
             language: Language code ('en' or 'pl')
             
         Returns:
-            Dict containing structured response
+            Dict containing structured response, context, and optional tip
         """
-        # Apply category-based prompt rewriting
-        processed_query = build_prompt(query)
+        # Initialize messages list
+        messages: List[Dict] = []
+        initial_response = None
+
+        # Handle new session with system tip
+        if not context or not context.get("messages"):
+            messages.append(DEFAULT_TIP)
+            initial_response = DEFAULT_TIP["content"]
+            context = {"messages": []}
         
-        # Real call to OpenRouter API
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        # Initialize messages with default tip for new sessions
-        messages: List[Dict] = [DEFAULT_TIP]
-        
-        # Add context if available
+        # Add existing context if available
         if context and isinstance(context, dict) and "messages" in context:
             messages.extend(context["messages"])
+        
+        # Apply category-based prompt rewriting
+        processed_query = build_prompt(query)
         
         # Add system prompt and user query
         messages.extend([
             {"role": "system", "content": BASE_PROMPT},
             {"role": "user", "content": processed_query}
         ])
+        
+        # Prepare API call
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
         
         body = {
             "model": Config.DEFAULT_MODEL,
@@ -73,7 +92,7 @@ class Assistant:
                 raw_response = response.json()["choices"][0]["message"]["content"]
         except Exception as e:
             logger.error("OpenRouter API request failed: %s", e)
-            return self._get_fallback_response(query)
+            return self._get_fallback_response(query, initial_response)
 
         flask_debug = os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
         if flask_debug:
@@ -83,20 +102,25 @@ class Assistant:
         json_match = re.search(r'```json\s*(\{.*?\})\s*```', raw_response, re.DOTALL)
         if not json_match:
             logger.warning("No valid JSON found in raw response. Using fallback.")
-            return self._get_fallback_response(query)
+            return self._get_fallback_response(query, initial_response)
 
         try:
             parsed_json = json.loads(json_match.group(1))
         except json.JSONDecodeError:
             logger.error("Failed to parse JSON from raw response. Using fallback.")
-            return self._get_fallback_response(query)
+            return self._get_fallback_response(query, initial_response)
 
         # Validate and ensure required fields
         validated_response = self._validate_response(parsed_json, query)
         if flask_debug:
             logger.debug("Parsed and validated JSON: %s", json.dumps(validated_response, indent=2))
 
-        return validated_response
+        # Return full response with context and tip
+        return {
+            "response": validated_response,
+            "context": {"messages": messages[-5:]},  # maintain last 5 messages
+            "tip": initial_response  # used by frontend to render welcome message
+        }
 
     def _validate_response(self, parsed_json: Dict, original_query: str) -> Dict:
         """Validate and ensure required fields in the parsed JSON response."""
@@ -115,12 +139,16 @@ class Assistant:
             validated["actions"] = parsed_json["actions"]
         return validated
 
-    def _get_fallback_response(self, query: str) -> Dict:
+    def _get_fallback_response(self, query: str, tip: Optional[str] = None) -> Dict:
         """Return a fallback response if parsing fails."""
         return {
-            "name": "Unknown result",
-            "description": ["No information available."],
-            "source_info": "No source info.",
-            "suggestions": [],
-            "actions": [{"type": "chat", "label": "Chaysh Assistant", "query": query}]
+            "response": {
+                "name": "Unknown result",
+                "description": ["No information available."],
+                "source_info": "No source info.",
+                "suggestions": [],
+                "actions": [{"type": "chat", "label": "Chaysh Assistant", "query": query}]
+            },
+            "context": {"messages": []},
+            "tip": tip
         } 
