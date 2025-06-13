@@ -1,0 +1,12 @@
+{
+  "default": "openai/gpt-4.1-nano",
+  "classify": "deepseek/deepseek-r1-0528-qwen3-8b:free",
+  "suggest": "deepseek/deepseek-r1-0528-qwen3-8b:free",
+  "respond": "openai/gpt-4.1-nano",
+  "alt_options": [
+    "openrouter/mistral-7b-instruct",
+    "openrouter/claude-3-haiku",
+    "openrouter/gemma-7b-it"
+  ],
+  "budget_per_call_usd": 0.0001
+} 
