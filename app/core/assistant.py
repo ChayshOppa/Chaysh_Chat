@@ -3,8 +3,8 @@ import os
 import json
 import re
 import httpx
-from typing import Dict, Optional
-from app.core.prompt import BASE_PROMPT
+from typing import Dict, Optional, List
+from app.core.prompt import BASE_PROMPT, build_prompt, DEFAULT_TIP
 from app.config import Config
 
 logger = logging.getLogger(__name__)
@@ -37,20 +37,35 @@ class Assistant:
         Returns:
             Dict containing structured response
         """
+        # Apply category-based prompt rewriting
+        processed_query = build_prompt(query)
+        
         # Real call to OpenRouter API
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
+        
+        # Initialize messages with default tip for new sessions
+        messages: List[Dict] = [DEFAULT_TIP]
+        
+        # Add context if available
+        if context and isinstance(context, dict) and "messages" in context:
+            messages.extend(context["messages"])
+        
+        # Add system prompt and user query
+        messages.extend([
+            {"role": "system", "content": BASE_PROMPT},
+            {"role": "user", "content": processed_query}
+        ])
+        
         body = {
             "model": Config.DEFAULT_MODEL,
-            "messages": [
-                {"role": "system", "content": BASE_PROMPT},
-                {"role": "user", "content": query}
-            ],
+            "messages": messages,
             "temperature": 0.7,
             "max_tokens": Config.MAX_TOKENS
         }
+        
         try:
             async with httpx.AsyncClient(timeout=20) as client:
                 response = await client.post(self.api_url, headers=headers, json=body)
