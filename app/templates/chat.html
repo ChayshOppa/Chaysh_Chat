@@ -1,307 +1,432 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4">
-    <!-- Header Section -->
-    <div class="text-center mb-12 mt-8">
-        <h1 id="chat-title" class="text-4xl font-bold text-gray-900 dark:text-white mb-4 transition-colors">Chat CTC</h1>
-        
-        <!-- Enhanced System Tip -->
-        <div id="system-tip" class="hidden mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-ios relative transition-all duration-500 opacity-0">
-            <button id="close-tip" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-            <div id="system-tip-content" class="prose dark:prose-invert max-w-none text-sm pr-6"></div>
+<div class="chat-container">
+    <!-- Hidden system tip -->
+    <div id="system-tip" class="system-tip" style="display: none;">
+        <div class="tip-content"></div>
+        <button class="tip-close" onclick="hideSystemTip()">×</button>
+    </div>
+
+    <!-- Chat messages -->
+    <div id="chat-messages" class="chat-messages"></div>
+
+    <!-- Loading indicator -->
+    <div id="loadingIndicator" class="loading hidden">
+        <div class="loading-dots">
+            <span></span>
+            <span></span>
+            <span></span>
         </div>
-        
-        <!-- Language Toggle -->
-        <div class="flex justify-center gap-4 mb-8">
-            <button id="lang-en" class="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
-                🇬🇧 English
-            </button>
-            <button id="lang-pl" class="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
-                🇵🇱 Polski
-            </button>
+    </div>
+
+    <!-- Error bubble (hidden by default) -->
+    <div id="errorBubble" class="error-bubble hidden"></div>
+
+    <!-- Token usage info (dev only) -->
+    <div id="tokenInfo" class="dev-debug"></div>
+
+    <!-- Input form -->
+    <form id="chat-form" class="chat-form">
+        <div class="input-group">
+            <select id="category-override" class="category-select">
+                <option value="">Auto-detect category</option>
+                <option value="weather">Weather</option>
+                <option value="person">Person</option>
+                <option value="compare">Compare</option>
+                <option value="price">Price</option>
+                <option value="translate">Translate</option>
+                <option value="summarize">Summarize</option>
+                <option value="explain">Explain</option>
+            </select>
+            <input type="text" id="message-input" placeholder="Type your message..." required>
+            <button type="submit">Send</button>
         </div>
-        
-        <!-- Chat Form -->
-        <form id="chat-form" class="relative max-w-2xl mx-auto">
-            <div class="relative flex gap-2">
-                <input type="text" 
-                       id="message-input"
-                       class="flex-1 px-6 py-4 text-lg rounded-ios border-2 border-gray-200 dark:border-gray-700 
-                              bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-                              focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800
-                              transition-all duration-200 shadow-sm"
-                       placeholder="Ask me anything..."
-                       autocomplete="off"
-                       required>
-                <select id="categoryOverride"
-                        class="px-4 py-4 text-lg rounded-ios border-2 border-gray-200 dark:border-gray-700
-                               bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-                               focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800
-                               transition-all duration-200 shadow-sm">
-                    <option value="">Auto Detect</option>
-                    <option value="weather">Weather</option>
-                    <option value="person">Person</option>
-                    <option value="compare">Compare</option>
-                    <option value="define">Define</option>
-                    <option value="summary">Summary</option>
-                    <option value="timeline">Timeline</option>
-                    <option value="location">Location</option>
-                    <option value="price">Price</option>
-                    <option value="contact">Contact</option>
-                    <option value="event">Event</option>
-                </select>
-                <button type="submit" 
-                        id="send-button"
-                        class="px-6 py-4 text-gray-500 hover:text-primary-500
-                               dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
-                    Send
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Chat Messages -->
-    <div id="chat-messages" class="space-y-6">
-        <!-- Messages will be dynamically inserted here -->
-    </div>
-
-    <!-- Loading Indicator -->
-    <div id="loading" class="hidden text-center py-8">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-500 border-t-transparent"></div>
-    </div>
-
-    <!-- Error Message -->
-    <div id="error" class="hidden text-center py-4 px-6 rounded-ios bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
-        An error occurred while processing your request.
-    </div>
+    </form>
 </div>
 
 <style>
-/* Category Badge Styles */
-.category-badge {
-    font-size: 0.85rem;
-    color: var(--color-accent, #3b82f6);
-    background: var(--badge-bg, rgba(59, 130, 246, 0.1));
-    padding: 4px 8px;
-    border-radius: 6px;
-    margin-top: 6px;
-    display: inline-block;
-    opacity: 0.9;
-    transition: opacity 0.2s;
+/* System tip styles */
+.system-tip {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
-.category-badge:hover {
-    opacity: 1;
+.tip-content {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    line-height: 1.5;
 }
 
-/* Copy Button Styles */
-.copy-button {
+.tip-close {
     position: absolute;
-    top: 8px;
-    right: 10px;
-    background: var(--accent-bg, rgba(59, 130, 246, 0.1));
-    color: var(--text-light, #3b82f6);
-    padding: 4px 8px;
-    font-size: 0.8rem;
-    border-radius: 4px;
-    opacity: 0.8;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
     cursor: pointer;
-    transition: opacity 0.2s;
+    font-size: 1.2rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
 }
 
-.copy-button:hover {
-    opacity: 1;
+.tip-close:hover {
+    background: var(--bg-hover);
 }
 
-/* Table Styles */
+/* Category badge styles */
+.category-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    background: var(--accent-color);
+    color: white;
+}
+
+/* Table styles */
 .ai-table {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
+    border-collapse: collapse;
     margin: 1rem 0;
+    background: var(--bg-secondary);
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .ai-table th,
 .ai-table td {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem;
     text-align: left;
-    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .ai-table th {
-    background: var(--header-bg, #f9fafb);
+    background: var(--bg-hover);
     font-weight: 600;
-    color: var(--header-color, #374151);
 }
 
-.ai-table tr:nth-child(even) {
-    background: var(--row-alt-bg, #f9fafb);
+.ai-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Loading indicator styles */
+.loading {
+    text-align: center;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.loading-dots {
+    display: inline-flex;
+    gap: 0.5rem;
+}
+
+.loading-dots span {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    animation: blink 1.2s infinite;
+}
+
+.loading-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+/* Error bubble styles */
+.error-bubble {
+    background: var(--error-color, #ff4c4c);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-weight: 500;
+    animation: fadeIn 0.3s ease-in-out;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.error-bubble::before {
+    content: "⚠️";
+    font-size: 1.2rem;
+}
+
+/* Token info styles */
+.dev-debug {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    padding: 0.5rem;
+    text-align: center;
+    font-family: monospace;
+    opacity: 0.7;
 }
 
 /* Dark mode support */
-.dark .ai-table th {
-    background: var(--dark-header-bg, #1f2937);
-    color: var(--dark-header-color, #e5e7eb);
-}
-
-.dark .ai-table td {
-    border-color: var(--dark-border-color, #374151);
-}
-
-.dark .ai-table tr:nth-child(even) {
-    background: var(--dark-row-alt-bg, #1f2937);
-}
-
-.dark .copy-button {
-    background: var(--dark-accent-bg, rgba(59, 130, 246, 0.2));
-    color: var(--dark-text-light, #60a5fa);
+@media (prefers-color-scheme: dark) {
+    .system-tip {
+        background: var(--bg-secondary-dark);
+        border-color: var(--border-color-dark);
+    }
+    
+    .tip-content {
+        color: var(--text-primary-dark);
+    }
+    
+    .tip-close {
+        color: var(--text-secondary-dark);
+    }
+    
+    .tip-close:hover {
+        background: var(--bg-hover-dark);
+    }
+    
+    .ai-table {
+        background: var(--bg-secondary-dark);
+    }
+    
+    .ai-table th,
+    .ai-table td {
+        border-color: var(--border-color-dark);
+    }
+    
+    .ai-table th {
+        background: var(--bg-hover-dark);
+    }
+    
+    .loading-dots span {
+        background: var(--accent-color-dark, #60a5fa);
+    }
+    
+    .error-bubble {
+        background: var(--error-color-dark, #ef4444);
+    }
+    
+    .dev-debug {
+        color: var(--text-secondary-dark);
+    }
 }
 </style>
 
 <script>
 // Language definitions
-const locales = {
+const languages = {
     en: {
-        title: "Chat CTC",
-        placeholder: "Ask me anything...",
-        send: "Send",
-        categoryDetected: "🧠 Detected:",
-        copy: "Copy",
-        copied: "Copied!"
+        categoryBadge: "Category:",
+        copyButton: "Copy",
+        copiedButton: "Copied!",
+        errorMessage: "An error occurred. Please try again.",
+        categories: {
+            weather: "Weather",
+            person: "Person",
+            compare: "Compare",
+            price: "Price",
+            translate: "Translate",
+            summarize: "Summarize",
+            explain: "Explain"
+        }
     },
     pl: {
-        title: "Czat CTC",
-        placeholder: "Zadaj pytanie...",
-        send: "Wyślij",
-        categoryDetected: "🧠 Wykryto:",
-        copy: "Kopiuj",
-        copied: "Skopiowano!"
+        categoryBadge: "Kategoria:",
+        copyButton: "Kopiuj",
+        copiedButton: "Skopiowano!",
+        errorMessage: "Wystąpił błąd. Spróbuj ponownie.",
+        categories: {
+            weather: "Pogoda",
+            person: "Osoba",
+            compare: "Porównanie",
+            price: "Cena",
+            translate: "Tłumaczenie",
+            summarize: "Podsumowanie",
+            explain: "Wyjaśnienie"
+        }
     }
 };
 
-// Apply language function
+// Apply language changes
 function applyLanguage(lang) {
-    const t = locales[lang] || locales['en'];
-    document.title = t.title;
-    document.getElementById("chat-title").innerText = t.title;
-    document.getElementById("message-input").placeholder = t.placeholder;
-    document.getElementById("send-button").innerText = t.send;
-    localStorage.setItem("lang", lang);
+    document.querySelectorAll('[data-lang]').forEach(element => {
+        const key = element.getAttribute('data-lang');
+        if (languages[lang][key]) {
+            element.textContent = languages[lang][key];
+        }
+    });
 }
 
-// System tip management
-function showSystemTip(text) {
-    const tipContainer = document.getElementById('system-tip');
-    const tipContent = document.getElementById('system-tip-content');
-    
-    // Convert markdown-style formatting to HTML
-    const formattedText = text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/`(.*?)`/g, '<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">$1</code>')
-        .replace(/\n/g, '<br>');
-    
-    tipContent.innerHTML = formattedText;
-    tipContainer.classList.remove('hidden');
-    
-    // Trigger reflow for animation
-    tipContainer.offsetHeight;
-    tipContainer.classList.add('opacity-100');
+// System tip handling
+function showSystemTip(content) {
+    const tip = document.getElementById('system-tip');
+    const tipContent = tip.querySelector('.tip-content');
+    tipContent.innerHTML = content;
+    tip.style.display = 'block';
 }
 
 function hideSystemTip() {
-    const tipContainer = document.getElementById('system-tip');
-    tipContainer.classList.remove('opacity-100');
-    setTimeout(() => {
-        tipContainer.classList.add('hidden');
-    }, 500); // Match transition duration
+    const tip = document.getElementById('system-tip');
+    tip.style.display = 'none';
 }
 
-// Response formatting helpers
-function parseResponseToTable(text) {
-    const rows = text.split('\n').filter(row => row.includes('|'));
-    return rows.map(row => row.split('|').map(cell => cell.trim()));
-}
-
-function renderAsTableOrChart(tableData) {
-    const table = document.createElement('table');
-    table.classList.add('ai-table');
+// Response formatting
+function formatResponse(text, category) {
+    if (!text) return '';
     
-    tableData.forEach((row, i) => {
-        const tr = document.createElement('tr');
-        row.forEach(cell => {
-            const cellEl = document.createElement(i === 0 ? 'th' : 'td');
-            cellEl.innerText = cell;
-            tr.appendChild(cellEl);
-        });
-        table.appendChild(tr);
-    });
-    
-    return table;
-}
-
-// Copy to clipboard functionality
-function createCopyButton(text) {
-    const button = document.createElement('button');
-    button.className = 'copy-button';
-    button.innerText = locales[localStorage.getItem('lang') || 'en'].copy;
-    
-    button.onclick = async () => {
-        try {
-            await navigator.clipboard.writeText(text);
-            const originalText = button.innerText;
-            button.innerText = locales[localStorage.getItem('lang') || 'en'].copied;
-            setTimeout(() => {
-                button.innerText = originalText;
-            }, 2000);
-        } catch (err) {
-            console.error('Failed to copy text:', err);
+    // Handle table formatting for specific categories
+    if (category === 'compare' || category === 'price') {
+        const lines = text.split('\n');
+        if (lines.length > 1) {
+            const headers = lines[0].split('|').map(h => h.trim()).filter(h => h);
+            const rows = lines.slice(1).map(line => 
+                line.split('|').map(cell => cell.trim()).filter(cell => cell)
+            );
+            
+            if (headers.length > 0 && rows.length > 0) {
+                return `
+                    <table class="ai-table">
+                        <thead>
+                            <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(row => `
+                                <tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
         }
-    };
+    }
     
-    return button;
+    return text;
 }
 
-// Event listeners for system tip
-document.getElementById('close-tip').addEventListener('click', hideSystemTip);
+// Message handling
+function addMessage(content, isUser = false, category = null) {
+    const messagesDiv = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+    
+    let messageContent = '';
+    
+    if (category) {
+        const lang = document.documentElement.lang || 'en';
+        messageContent += `
+            <div class="category-badge">
+                ${languages[lang].categoryBadge} ${languages[lang].categories[category] || category}
+            </div>
+        `;
+    }
+    
+    messageContent += `<div class="message-content">${formatResponse(content, category)}</div>`;
+    
+    if (!isUser) {
+        messageContent += `
+            <button class="copy-button" onclick="copyToClipboard(this, '${content.replace(/'/g, "\\'")}')">
+                ${languages[document.documentElement.lang || 'en'].copyButton}
+            </button>
+        `;
+    }
+    
+    messageDiv.innerHTML = messageContent;
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
 
-// Language button event listeners
-document.getElementById("lang-en").addEventListener("click", () => applyLanguage("en"));
-document.getElementById("lang-pl").addEventListener("click", () => applyLanguage("pl"));
+// Copy to clipboard
+function copyToClipboard(button, text) {
+    navigator.clipboard.writeText(text).then(() => {
+        const lang = document.documentElement.lang || 'en';
+        button.textContent = languages[lang].copiedButton;
+        setTimeout(() => {
+            button.textContent = languages[lang].copyButton;
+        }, 2000);
+    });
+}
 
-// Initialize with saved language
-const savedLang = localStorage.getItem("lang") || "en";
-applyLanguage(savedLang);
+// Loading state management
+function showLoading() {
+    document.getElementById("loadingIndicator").classList.remove("hidden");
+    document.getElementById("chat-form").classList.add("disabled");
+}
 
-// Chat form submission
+function hideLoading() {
+    document.getElementById("loadingIndicator").classList.add("hidden");
+    document.getElementById("chat-form").classList.remove("disabled");
+}
+
+// Error handling
+function showError(message) {
+    const errorBubble = document.getElementById("errorBubble");
+    const lang = document.documentElement.lang || 'en';
+    const defaultMessage = languages[lang].errorMessage;
+    errorBubble.textContent = message || defaultMessage;
+    errorBubble.classList.remove("hidden");
+    setTimeout(() => {
+        errorBubble.classList.add("hidden");
+    }, 5000);
+}
+
+// Token usage display
+function updateTokenInfo(tokens) {
+    if (!tokens) return;
+    
+    const tokenInfo = document.getElementById("tokenInfo");
+    if (tokenInfo) {
+        tokenInfo.textContent = `🧮 Prompt: ${tokens.prompt} | Completion: ${tokens.completion} | Total: ${tokens.total}`;
+    }
+}
+
+// Form handling
 document.getElementById('chat-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const message = document.getElementById('message-input').value.trim();
+    const input = document.getElementById('message-input');
+    const categoryOverride = document.getElementById('category-override').value;
+    const message = input.value.trim();
+    
     if (!message) return;
     
-    // Reset UI state
-    document.getElementById('error').classList.add('hidden');
-    document.getElementById('loading').classList.remove('hidden');
-    hideSystemTip();
+    // Add user message
+    addMessage(message, true);
+    input.value = '';
+    
+    // Show loading state
+    showLoading();
     
     try {
-        const response = await fetch('/api/chat', {
+        const response = await fetch('/chat', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ 
-                message,
-                category_override: document.getElementById('categoryOverride').value
-            })
+            body: JSON.stringify({
+                message: message,
+                category_override: categoryOverride
+            }),
         });
         
         const data = await response.json();
@@ -309,69 +434,40 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
         if (data.error) {
             throw new Error(data.error);
         }
-
-        // Add message to chat
-        const messagesDiv = document.getElementById('chat-messages');
-        const messageElement = document.createElement('div');
-        messageElement.className = 'bg-white dark:bg-gray-800 rounded-ios shadow-lg p-6 transition-all duration-200 relative';
         
-        // Create message content
-        const messageContent = document.createElement('div');
-        messageContent.className = 'prose dark:prose-invert max-w-none';
-        
-        // Handle different response types based on category
-        if (data.category === "compare" || data.category === "price") {
-            try {
-                const tableData = parseResponseToTable(data.response);
-                if (tableData.length > 0) {
-                    const table = renderAsTableOrChart(tableData);
-                    messageContent.appendChild(table);
-                } else {
-                    messageContent.innerHTML = `<p class="text-gray-700 dark:text-gray-300">${data.response}</p>`;
-                }
-            } catch (err) {
-                messageContent.innerHTML = `<p class="text-gray-700 dark:text-gray-300">${data.response}</p>`;
-            }
-        } else {
-            messageContent.innerHTML = `<p class="text-gray-700 dark:text-gray-300">${data.response}</p>`;
-        }
-        
-        messageElement.appendChild(messageContent);
-        
-        // Add category badge if present
-        if (data.category) {
-            const badge = document.createElement('div');
-            badge.classList.add('category-badge');
-            const lang = localStorage.getItem('lang') || 'en';
-            badge.innerText = `${locales[lang].categoryDetected} ${data.category}`;
-            messageElement.appendChild(badge);
-        }
-        
-        // Add copy button
-        messageElement.appendChild(createCopyButton(data.response));
-        
-        messagesDiv.appendChild(messageElement);
-
-        // Handle system tip if present
+        // Show system tip if provided
         if (data.tip) {
             showSystemTip(data.tip);
         }
         
-        // Clear input
-        document.getElementById('message-input').value = '';
+        // Add assistant message
+        addMessage(data.response, false, data.category);
+        
+        // Update token info if available
+        if (data.tokens) {
+            updateTokenInfo(data.tokens);
+        }
+        
+        // Debug log
+        if (data.category) {
+            console.log("Category:", data.category);
+        }
         
     } catch (error) {
-        console.error('Chat error:', error);
-        document.getElementById('error').textContent = error.message;
-        document.getElementById('error').classList.remove('hidden');
+        console.error('Error:', error);
+        showError();
     } finally {
-        document.getElementById('loading').classList.add('hidden');
+        hideLoading();
     }
 });
 
-// Focus input on page load
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('message-input').focus();
+// Language toggle handling
+document.querySelectorAll('.language-toggle').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+        const lang = toggle.getAttribute('data-lang');
+        document.documentElement.lang = lang;
+        applyLanguage(lang);
+    });
 });
 </script>
 {% endblock %} 

@@ -25,7 +25,7 @@ class Assistant:
         
         # Log API key verification (first 4 chars only)
         if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
-            logger.info(f"[Chaysh] Loaded API key: {settings.OPENAI_API_KEY[:4]}... ✅")
+            logger.info(f"[Chaysh] API key: {settings.OPENAI_API_KEY[:4]}... ✅")
 
     def build_prompt(self, user_input: str, context: List[Dict[str, str]] = None, category_override: Optional[str] = None) -> List[Dict[str, str]]:
         """
@@ -45,28 +45,28 @@ class Assistant:
         if not context:
             messages.append(DEFAULT_TIP)
         
-        # Add conversation context if available
+        # Add conversation context if available (keep last 4 messages)
         if context:
-            messages.extend(context)
+            messages.extend(context[-4:])
         
         # Handle category detection or override
         if category_override and category_override in category_map:
             # Use override if valid category
             category = category_override
             template = category_map[category]["template"]
-            rewritten_prompt = template.format(target=user_input)
+            rewritten_prompt = template.format(target=user_input.strip())
             if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
-                logger.debug(f"Using category override: {category}")
+                logger.debug(f"Category override: {category}")
         else:
             # Auto-detect category
             category_result = detect_category(user_input)
             if category_result:
                 category, template = category_result
-                rewritten_prompt = template.format(target=user_input)
+                rewritten_prompt = template.format(target=user_input.strip())
                 if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
                     logger.debug(f"Detected category: {category}")
             else:
-                rewritten_prompt = user_input
+                rewritten_prompt = user_input.strip()
                 category = None
         
         messages.append({"role": "user", "content": rewritten_prompt})
@@ -75,6 +75,7 @@ class Assistant:
     def clean_gpt_reply(self, reply: str) -> str:
         """
         Clean and format the GPT response.
+        Removes static-sounding GPT filler phrases and suggestions.
         
         Args:
             reply: Raw response from GPT
@@ -82,9 +83,13 @@ class Assistant:
         Returns:
             Cleaned response text
         """
-        # Remove suggestion-style endings
-        reply = re.sub(r'\n\nWould you like me to.*$', '', reply, flags=re.DOTALL)
-        reply = re.sub(r'\n\nIs there anything else.*$', '', reply, flags=re.DOTALL)
+        # Remove suggestion-style endings and filler phrases
+        reply = re.sub(
+            r"(Can you elaborate.*?|Would you like more.*?|What specific aspects.*?|Would you like me to.*?|Is there anything else.*?)$",
+            "",
+            reply,
+            flags=re.IGNORECASE | re.DOTALL
+        )
         
         # Clean up any remaining whitespace
         reply = reply.strip()
@@ -109,6 +114,12 @@ class Assistant:
             Dictionary containing response, context, tip, and category
         """
         try:
+            # Initialize tip handling
+            initial_response = None
+            if not context:
+                context = [DEFAULT_TIP]
+                initial_response = DEFAULT_TIP["content"]
+            
             # Build the complete prompt
             messages = self.build_prompt(user_input, context, category_override)
             
@@ -133,26 +144,36 @@ class Assistant:
                     category_result = detect_category(user_input)
                     category = category_result[0] if category_result else None
             
-            # Update context with the new exchange
-            new_context = messages + [{"role": "assistant", "content": cleaned_reply}]
+            # Update context with the new exchange (keep last 5 messages total)
+            new_context = messages[-4:] + [{"role": "assistant", "content": cleaned_reply}]
+            
+            # Get token usage
+            usage = response.usage
+            tokens = {
+                "prompt": usage.prompt_tokens,
+                "completion": usage.completion_tokens,
+                "total": usage.total_tokens
+            }
             
             # Log success in debug mode
             if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
-                logger.debug(f"Successfully generated response for category: {category}")
+                logger.debug(f"Category: {category}, Tokens: {tokens['total']}")
             
             return {
                 "response": cleaned_reply,
                 "context": new_context,
-                "tip": DEFAULT_TIP if not context else None,
-                "category": category
+                "tip": initial_response,
+                "category": category,
+                "tokens": tokens if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes") else None
             }
             
         except Exception as e:
             # Log the error and return a user-friendly message
-            logger.error(f"Error in get_response: {str(e)}")
+            logger.error(f"Error: {str(e)}")
             return {
-                "response": "I apologize, but I encountered an error. Please try again.",
+                "response": "I apologize, but I encountered an error. Please try using a category like 'compare' or 'weather'.",
                 "context": context or [],
-                "tip": DEFAULT_TIP if not context else None,
-                "category": None
+                "tip": DEFAULT_TIP["content"] if not context else None,
+                "category": None,
+                "error": str(e) if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes") else None
             } 

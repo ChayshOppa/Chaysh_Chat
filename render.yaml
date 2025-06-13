@@ -12,11 +12,17 @@ build:
 
 services:
   - type: web
-    name: chaysh-ai
+    name: chaysh-assistant
     env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn src.main:app -b 0.0.0.0:$PORT"
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn src.main:app -b 0.0.0.0:$PORT
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: OPENAI_API_KEY
+        sync: false
       # Required environment variables - must be set in Render dashboard
       - key: OPENROUTER_API_KEY
         sync: false
@@ -26,9 +32,6 @@ services:
         description: Flask secret key for session security
       
       # Optional environment variables
-      - key: FLASK_DEBUG
-        value: false
-        description: Set to true for development mode
       - key: MODEL
         value: mistral-7b-instruct
         description: AI model to use for processing
