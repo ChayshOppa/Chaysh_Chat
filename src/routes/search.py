@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from src.assistant_core import handle_assistant_request
+from src.services.openrouter_service import get_model_config
 
 bp = Blueprint('search', __name__)
 
@@ -12,4 +13,5 @@ def search():
         return jsonify({"error": "No prompt provided"}), 400
 
     result = handle_assistant_request(user_prompt)
+    result["model"] = get_model_config().get("respond", "openai/gpt-4.1-nano")  # debug info
     return jsonify(result) 

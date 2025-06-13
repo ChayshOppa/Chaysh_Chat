@@ -161,8 +161,14 @@
                                         {% if message.category %}
                                             <div class="chat-category">📂 {{ message.category | capitalize }}</div>
                                         {% endif %}
+
+                                        {% if dev_mode %}
+                                            <div class="chat-debug">🧪 Model: {{ message.model }} | Category: {{ message.category }}</div>
+                                        {% endif %}
+
                                         <div class="message-content">{{ message.content }}</div>
-                                        {% if message.suggestions %}
+
+                                        {% if message.suggestions and message.suggestions|length > 0 %}
                                             <div class="chat-suggestions">
                                                 {% for suggestion in message.suggestions %}
                                                     <button class="chat-suggestion" onclick="handleSuggestionClick('{{ suggestion }}')">
