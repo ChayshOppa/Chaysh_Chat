@@ -4,6 +4,7 @@
 # Project specific
 oldy/
 *.log
+cursor-rules.md
 
 # Python
 __pycache__/
