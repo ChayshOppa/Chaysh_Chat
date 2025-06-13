@@ -4,6 +4,7 @@ def suggest_next_prompts(last_prompts: list[str]) -> list[str]:
     context = "\n".join(last_prompts[-3:])
     config = get_model_config()
     model = config.get("suggest", "deepseek/deepseek-r1-0528-qwen3-8b:free")
+    print(f"[Suggester] Model selected: {model}")
 
     system_prompt = (
         "Based on the user's recent conversation:\n"

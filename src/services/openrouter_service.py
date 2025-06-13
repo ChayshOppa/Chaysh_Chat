@@ -8,6 +8,7 @@ def call_openrouter_model(model=None, system_prompt="", user_prompt="", temperat
     config = get_model_config()
 
     selected_model = model or config.get("default", "openai/gpt-4.1-nano")
+    print(f"[OpenRouter] Final model sent to OpenRouter API: {selected_model}")
 
     headers = {
         "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",

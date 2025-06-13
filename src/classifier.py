@@ -11,6 +11,7 @@ def load_categories():
 def classify_prompt(prompt: str) -> str:
     config = get_model_config()
     model = config.get("classify", "deepseek/deepseek-r1-0528-qwen3-8b:free")
+    print(f"[Classifier] Model selected: {model}")
     categories = load_categories()
 
     system_prompt = (
