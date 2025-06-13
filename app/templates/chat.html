@@ -67,6 +67,84 @@
     </div>
 </div>
 
+<style>
+/* Assistant message styling */
+.assistant-message {
+    background: linear-gradient(145deg, #ffffff, #f5f7fa);
+    border: 1px solid rgba(14, 165, 233, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    animation: fadeIn 0.25s ease-in;
+}
+
+.dark .assistant-message {
+    background: linear-gradient(145deg, #1f2937, #111827);
+    border: 1px solid rgba(56, 189, 248, 0.1);
+}
+
+.chat-category-label {
+    color: #0ea5e9;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    animation: fadeIn 0.25s ease-in;
+}
+
+.dark .chat-category-label {
+    color: #38bdf8;
+}
+
+.chat-suggestions {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.chat-suggestion-btn {
+    background: rgba(14, 165, 233, 0.1);
+    color: #0ea5e9;
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    animation: fadeIn 0.25s ease-in;
+}
+
+.chat-suggestion-btn:hover {
+    background: rgba(14, 165, 233, 0.15);
+    border-color: rgba(14, 165, 233, 0.3);
+    transform: translateY(-1px);
+}
+
+.dark .chat-suggestion-btn {
+    background: rgba(56, 189, 248, 0.1);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.dark .chat-suggestion-btn:hover {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.3);
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(4px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+</style>
+
 <script>
 // Language definitions
 const locales = {
@@ -138,11 +216,19 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
         // Add message to chat
         const messagesDiv = document.getElementById('chat-messages');
         const messageElement = document.createElement('div');
-        messageElement.className = 'bg-white dark:bg-gray-800 rounded-ios shadow-lg p-6 transition-all duration-200';
+        messageElement.className = 'assistant-message rounded-ios p-6 transition-all duration-200';
         messageElement.innerHTML = `
+            ${data.category ? `<div class="chat-category-label">📂 ${data.category}</div>` : ''}
             <div class="prose dark:prose-invert max-w-none">
                 <p class="text-gray-700 dark:text-gray-300">${data.response}</p>
             </div>
+            ${data.suggestions && data.suggestions.length > 0 ? `
+                <div class="chat-suggestions">
+                    ${data.suggestions.slice(0, 3).map(s => `
+                        <button class="chat-suggestion-btn" onclick="handleSuggestionClick('${s.replace(/'/g, "\\'")}')">${s}</button>
+                    `).join('')}
+                </div>
+            ` : ''}
         `;
         messagesDiv.appendChild(messageElement);
         
@@ -170,5 +256,13 @@ document.querySelectorAll('#suggestion-1, #suggestion-2, #suggestion-3').forEach
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('message-input').focus();
 });
+
+// Handle suggestion clicks
+function handleSuggestionClick(text) {
+    const input = document.getElementById('message-input');
+    input.value = text;
+    // Optional: submit automatically
+    // document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+}
 </script>
 {% endblock %} 
