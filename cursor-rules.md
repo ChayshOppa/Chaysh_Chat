@@ -36,3 +36,4 @@ Do not assume one structure. Respect both folders unless we explicitly migrate o
 - Never overwrite `.env` or `.gitignore`.
 - Never change default styling, layout, or category behavior unless explicitly requested.
 - Never push unfinished or test keys/models to GitHub.
+- Never push cursor-rules.md and Chaysh.zip if existing to github.
