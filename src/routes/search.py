@@ -12,5 +12,4 @@ def search():
         return jsonify({"error": "No prompt provided"}), 400
 
     result = handle_assistant_request(user_prompt)
-
-    return jsonify(result), 200 
+    return jsonify(result) 
