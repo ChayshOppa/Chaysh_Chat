@@ -1,0 +1,9 @@
+{
+  "electronics": ["phones", "laptops", "gadgets"],
+  "travel": ["flights", "hotels", "visas"],
+  "legal": ["contracts", "immigration", "law"],
+  "health": ["fitness", "medicine", "nutrition"],
+  "finance": ["crypto", "stocks", "loans"],
+  "food": ["cooking", "recipes", "diet"],
+  "sports": ["training", "matches", "gear"]
+} 
