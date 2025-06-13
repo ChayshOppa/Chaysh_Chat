@@ -28,19 +28,36 @@
         
         <!-- Chat Form -->
         <form id="chat-form" class="relative max-w-2xl mx-auto">
-            <div class="relative">
+            <div class="relative flex gap-2">
                 <input type="text" 
                        id="message-input"
-                       class="w-full px-6 py-4 text-lg rounded-ios border-2 border-gray-200 dark:border-gray-700 
+                       class="flex-1 px-6 py-4 text-lg rounded-ios border-2 border-gray-200 dark:border-gray-700 
                               bg-white dark:bg-gray-800 text-gray-900 dark:text-white
                               focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800
                               transition-all duration-200 shadow-sm"
                        placeholder="Ask me anything..."
                        autocomplete="off"
                        required>
+                <select id="categoryOverride"
+                        class="px-4 py-4 text-lg rounded-ios border-2 border-gray-200 dark:border-gray-700
+                               bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                               focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800
+                               transition-all duration-200 shadow-sm">
+                    <option value="">Auto Detect</option>
+                    <option value="weather">Weather</option>
+                    <option value="person">Person</option>
+                    <option value="compare">Compare</option>
+                    <option value="define">Define</option>
+                    <option value="summary">Summary</option>
+                    <option value="timeline">Timeline</option>
+                    <option value="location">Location</option>
+                    <option value="price">Price</option>
+                    <option value="contact">Contact</option>
+                    <option value="event">Event</option>
+                </select>
                 <button type="submit" 
                         id="send-button"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-primary-500
+                        class="px-6 py-4 text-gray-500 hover:text-primary-500
                                dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
                     Send
                 </button>
@@ -64,18 +81,109 @@
     </div>
 </div>
 
+<style>
+/* Category Badge Styles */
+.category-badge {
+    font-size: 0.85rem;
+    color: var(--color-accent, #3b82f6);
+    background: var(--badge-bg, rgba(59, 130, 246, 0.1));
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-top: 6px;
+    display: inline-block;
+    opacity: 0.9;
+    transition: opacity 0.2s;
+}
+
+.category-badge:hover {
+    opacity: 1;
+}
+
+/* Copy Button Styles */
+.copy-button {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: var(--accent-bg, rgba(59, 130, 246, 0.1));
+    color: var(--text-light, #3b82f6);
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    opacity: 0.8;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.copy-button:hover {
+    opacity: 1;
+}
+
+/* Table Styles */
+.ai-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 1rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.ai-table th,
+.ai-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.ai-table th {
+    background: var(--header-bg, #f9fafb);
+    font-weight: 600;
+    color: var(--header-color, #374151);
+}
+
+.ai-table tr:nth-child(even) {
+    background: var(--row-alt-bg, #f9fafb);
+}
+
+/* Dark mode support */
+.dark .ai-table th {
+    background: var(--dark-header-bg, #1f2937);
+    color: var(--dark-header-color, #e5e7eb);
+}
+
+.dark .ai-table td {
+    border-color: var(--dark-border-color, #374151);
+}
+
+.dark .ai-table tr:nth-child(even) {
+    background: var(--dark-row-alt-bg, #1f2937);
+}
+
+.dark .copy-button {
+    background: var(--dark-accent-bg, rgba(59, 130, 246, 0.2));
+    color: var(--dark-text-light, #60a5fa);
+}
+</style>
+
 <script>
 // Language definitions
 const locales = {
     en: {
         title: "Chat CTC",
         placeholder: "Ask me anything...",
-        send: "Send"
+        send: "Send",
+        categoryDetected: "🧠 Detected:",
+        copy: "Copy",
+        copied: "Copied!"
     },
     pl: {
         title: "Czat CTC",
         placeholder: "Zadaj pytanie...",
-        send: "Wyślij"
+        send: "Wyślij",
+        categoryDetected: "🧠 Wykryto:",
+        copy: "Kopiuj",
+        copied: "Skopiowano!"
     }
 };
 
@@ -116,6 +224,51 @@ function hideSystemTip() {
     }, 500); // Match transition duration
 }
 
+// Response formatting helpers
+function parseResponseToTable(text) {
+    const rows = text.split('\n').filter(row => row.includes('|'));
+    return rows.map(row => row.split('|').map(cell => cell.trim()));
+}
+
+function renderAsTableOrChart(tableData) {
+    const table = document.createElement('table');
+    table.classList.add('ai-table');
+    
+    tableData.forEach((row, i) => {
+        const tr = document.createElement('tr');
+        row.forEach(cell => {
+            const cellEl = document.createElement(i === 0 ? 'th' : 'td');
+            cellEl.innerText = cell;
+            tr.appendChild(cellEl);
+        });
+        table.appendChild(tr);
+    });
+    
+    return table;
+}
+
+// Copy to clipboard functionality
+function createCopyButton(text) {
+    const button = document.createElement('button');
+    button.className = 'copy-button';
+    button.innerText = locales[localStorage.getItem('lang') || 'en'].copy;
+    
+    button.onclick = async () => {
+        try {
+            await navigator.clipboard.writeText(text);
+            const originalText = button.innerText;
+            button.innerText = locales[localStorage.getItem('lang') || 'en'].copied;
+            setTimeout(() => {
+                button.innerText = originalText;
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy text:', err);
+        }
+    };
+    
+    return button;
+}
+
 // Event listeners for system tip
 document.getElementById('close-tip').addEventListener('click', hideSystemTip);
 
@@ -133,21 +286,24 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
     
     const message = document.getElementById('message-input').value.trim();
     if (!message) return;
-
+    
     // Reset UI state
     document.getElementById('error').classList.add('hidden');
     document.getElementById('loading').classList.remove('hidden');
     hideSystemTip();
-
+    
     try {
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ 
+                message,
+                category_override: document.getElementById('categoryOverride').value
+            })
         });
-
+        
         const data = await response.json();
         
         if (data.error) {
@@ -157,12 +313,43 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
         // Add message to chat
         const messagesDiv = document.getElementById('chat-messages');
         const messageElement = document.createElement('div');
-        messageElement.className = 'bg-white dark:bg-gray-800 rounded-ios shadow-lg p-6 transition-all duration-200';
-        messageElement.innerHTML = `
-            <div class="prose dark:prose-invert max-w-none">
-                <p class="text-gray-700 dark:text-gray-300">${data.response}</p>
-            </div>
-        `;
+        messageElement.className = 'bg-white dark:bg-gray-800 rounded-ios shadow-lg p-6 transition-all duration-200 relative';
+        
+        // Create message content
+        const messageContent = document.createElement('div');
+        messageContent.className = 'prose dark:prose-invert max-w-none';
+        
+        // Handle different response types based on category
+        if (data.category === "compare" || data.category === "price") {
+            try {
+                const tableData = parseResponseToTable(data.response);
+                if (tableData.length > 0) {
+                    const table = renderAsTableOrChart(tableData);
+                    messageContent.appendChild(table);
+                } else {
+                    messageContent.innerHTML = `<p class="text-gray-700 dark:text-gray-300">${data.response}</p>`;
+                }
+            } catch (err) {
+                messageContent.innerHTML = `<p class="text-gray-700 dark:text-gray-300">${data.response}</p>`;
+            }
+        } else {
+            messageContent.innerHTML = `<p class="text-gray-700 dark:text-gray-300">${data.response}</p>`;
+        }
+        
+        messageElement.appendChild(messageContent);
+        
+        // Add category badge if present
+        if (data.category) {
+            const badge = document.createElement('div');
+            badge.classList.add('category-badge');
+            const lang = localStorage.getItem('lang') || 'en';
+            badge.innerText = `${locales[lang].categoryDetected} ${data.category}`;
+            messageElement.appendChild(badge);
+        }
+        
+        // Add copy button
+        messageElement.appendChild(createCopyButton(data.response));
+        
         messagesDiv.appendChild(messageElement);
 
         // Handle system tip if present
