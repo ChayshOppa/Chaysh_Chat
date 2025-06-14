@@ -157,6 +157,18 @@
                     
                     <!-- Input Container -->
                     <div class="flex gap-4">
+                        <select id="category-select" class="px-4 py-3 rounded-ios border-2 border-gray-200 dark:border-gray-700 
+                               bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                               focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800
+                               transition-all duration-200">
+                            <option value="">Auto-detect</option>
+                            <option value="weather">Weather</option>
+                            <option value="person">Person</option>
+                            <option value="compare">Compare</option>
+                            <option value="price">Price</option>
+                            <option value="translate">Translate</option>
+                            <option value="summarize">Summarize</option>
+                        </select>
                         <input type="text" 
                                id="query-input" 
                                class="flex-grow px-4 py-3 rounded-ios border-2 border-gray-200 dark:border-gray-700 
@@ -179,10 +191,10 @@
     <script>
         const chatContainer = document.getElementById('chat-container');
         const queryInput = document.getElementById('query-input');
+        const categorySelect = document.getElementById('category-select');
         const chatTitle = document.getElementById('chat-title');
         const sendButton = document.querySelector('button[onclick="sendQuery()"]');
         const MAX_INPUT_LENGTH = 600;
-        const MAX_OUTPUT_LENGTH = 300;
 
         // Translations object
         const translations = {
@@ -193,16 +205,7 @@
                 error: 'An error occurred while processing your request.',
                 thinking: 'Thinking...',
                 messageTooLong: 'Message too long ({{length}}/{{max}} characters)',
-                terms: 'Terms & Conditions',
-                toggleTheme: 'Toggle Theme',
-                changeLanguage: 'Change Language',
-                english: 'English',
-                polish: 'Polish',
-                menu: {
-                    terms: 'Terms & Conditions',
-                    theme: 'Toggle Theme',
-                    language: 'Change Language'
-                }
+                autoDetect: 'Auto-detect'
             },
             pl: {
                 title: 'Chat CTC (Chaysh to Człowieku)',
@@ -211,192 +214,115 @@
                 error: 'Wystąpił błąd podczas przetwarzania żądania.',
                 thinking: 'Myślę...',
                 messageTooLong: 'Wiadomość zbyt długa ({{length}}/{{max}} znaków)',
-                terms: 'Regulamin',
-                toggleTheme: 'Zmień motyw',
-                changeLanguage: 'Zmień język',
-                english: 'Angielski',
-                polish: 'Polski',
-                menu: {
-                    terms: 'Regulamin',
-                    theme: 'Zmień motyw',
-                    language: 'Zmień język'
-                }
+                autoDetect: 'Auto-wykryj'
             }
         };
 
-        // Update UI text based on language
-        function updateUIText(lang) {
-            const t = translations[lang];
-            chatTitle.textContent = t.title;
-            queryInput.placeholder = t.placeholder;
-            sendButton.textContent = t.send;
-            
-            // Update menu labels
-            document.querySelectorAll('.menu-label').forEach(label => {
-                if (label.textContent.includes('Terms') || label.textContent.includes('Regulamin')) {
-                    label.textContent = t.menu.terms;
-                } else if (label.textContent.includes('Theme') || label.textContent.includes('motyw')) {
-                    label.textContent = t.menu.theme;
-                } else if (label.textContent.includes('Language') || label.textContent.includes('język')) {
-                    label.textContent = t.menu.language;
-                }
-            });
-
-            // Update language dropdown options
-            const langButtons = langDropdown.querySelectorAll('button');
-            langButtons[0].querySelector('span:last-child').textContent = t.english;
-            langButtons[1].querySelector('span:last-child').textContent = t.polish;
-        }
-
-        // Theme toggle functionality
-        const themeToggle = document.getElementById('theme-toggle');
-        const html = document.documentElement;
-        
-        // Set default theme to dark
-        if (!('theme' in localStorage)) {
-            localStorage.theme = 'dark';
-        }
-        
-        // Apply saved theme
-        if (localStorage.theme === 'dark') {
-            html.classList.add('dark');
-        } else {
-            html.classList.remove('dark');
-        }
-
-        // Toggle theme
-        themeToggle.addEventListener('click', () => {
-            html.classList.toggle('dark');
-            localStorage.theme = html.classList.contains('dark') ? 'dark' : 'light';
-        });
-
-        // Language dropdown functionality
-        const langToggle = document.getElementById('lang-toggle');
-        const langDropdown = document.getElementById('lang-dropdown');
-        
-        langToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            langDropdown.classList.toggle('hidden');
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', () => {
-            langDropdown.classList.add('hidden');
-        });
-
-        // Language selection
-        const langButtons = langDropdown.querySelectorAll('button');
-        langButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const langCode = button.dataset.lang;
-                localStorage.setItem('language', langCode);
-                updateUIText(langCode);
-                langDropdown.classList.add('hidden');
-            });
-        });
-
-        // Initialize language
-        const savedLang = localStorage.getItem('language') || 'en';
-        updateUIText(savedLang);
-
-        function truncateText(text, maxLength) {
-            return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
-        }
-
-        function addMessage(content, isUser = false) {
+        function addMessage(content, isUser = false, category = null, tokens = null) {
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message mb-4 p-4 rounded-ios max-w-[80%] ${
-                isUser 
-                    ? 'ml-auto bg-primary-500 text-white' 
-                    : 'mr-auto bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-            }`;
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'} mb-4`;
             
-            // Truncate assistant messages
-            const displayContent = isUser ? content : truncateText(content, MAX_OUTPUT_LENGTH);
-            messageDiv.textContent = displayContent;
+            if (category) {
+                const badge = document.createElement('div');
+                badge.className = 'category-badge mb-2';
+                badge.textContent = category;
+                messageDiv.appendChild(badge);
+            }
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content p-4 rounded-ios';
+            contentDiv.textContent = content;
+            messageDiv.appendChild(contentDiv);
+            
+            if (tokens && !isUser) {
+                const tokenUsage = document.createElement('div');
+                tokenUsage.className = 'token-usage text-sm text-gray-500 mt-2';
+                tokenUsage.textContent = `Tokens: ${tokens.total} (prompt: ${tokens.prompt}, completion: ${tokens.completion})`;
+                messageDiv.appendChild(tokenUsage);
+            }
             
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function addError(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'mb-4 p-4 rounded-ios bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400';
-            errorDiv.textContent = message;
-            chatContainer.appendChild(errorDiv);
+        function showLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message assistant mb-4';
+            loadingDiv.innerHTML = `
+                <div class="loading p-4 rounded-ios">
+                    <div class="loading-dots flex gap-2">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <span class="ml-2">${translations[localStorage.getItem('language') || 'en'].thinking}</span>
+                </div>
+            `;
+            loadingDiv.id = 'loading-indicator';
+            chatContainer.appendChild(loadingDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function addSuggestions(suggestions) {
-            const suggestionsDiv = document.createElement('div');
-            suggestionsDiv.className = 'mt-4 flex flex-wrap gap-2';
-            
-            suggestions.forEach(suggestion => {
-                const suggestionButton = document.createElement('button');
-                suggestionButton.className = 'px-4 py-2 text-sm rounded-full ' +
-                    'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 ' +
-                    'hover:bg-gray-300 dark:hover:bg-gray-500 transition-all duration-200';
-                suggestionButton.textContent = suggestion;
-                suggestionButton.onclick = () => {
-                    queryInput.value = suggestion;
-                    sendQuery();
-                };
-                suggestionsDiv.appendChild(suggestionButton);
-            });
-            
-            chatContainer.appendChild(suggestionsDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+        function hideLoading() {
+            const loadingDiv = document.getElementById('loading-indicator');
+            if (loadingDiv) {
+                loadingDiv.remove();
+            }
         }
 
         async function sendQuery() {
             const query = queryInput.value.trim();
+            const category = categorySelect.value;
+            
             if (!query) return;
-
+            
+            if (query.length > MAX_INPUT_LENGTH) {
+                alert(translations[localStorage.getItem('language') || 'en'].messageTooLong
+                    .replace('{{length}}', query.length)
+                    .replace('{{max}}', MAX_INPUT_LENGTH));
+                return;
+            }
+            
             // Add user message
             addMessage(query, true);
             queryInput.value = '';
-
-            // Add loading indicator
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'text-center text-gray-500 dark:text-gray-400';
-            loadingDiv.textContent = translations[localStorage.getItem('language') || 'en'].thinking;
-            chatContainer.appendChild(loadingDiv);
-
+            
+            // Show loading state
+            showLoading();
+            
             try {
                 const response = await fetch('/api/ask', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         query,
+                        category_override: category || undefined,
                         lang: localStorage.getItem('language') || 'en'
                     })
                 });
-
+                
                 const data = await response.json();
                 
-                // Remove loading indicator
-                chatContainer.removeChild(loadingDiv);
-                
                 if (data.error) {
-                    addError(data.error);
-                    return;
+                    throw new Error(data.error);
                 }
-
-                // Add assistant message
-                addMessage(data.response);
-
-                // Add suggestions if any
-                if (data.suggestions && data.suggestions.length > 0) {
-                    addSuggestions(data.suggestions);
-                }
-            } catch (error) {
-                // Remove loading indicator
-                chatContainer.removeChild(loadingDiv);
                 
-                console.error('Chat error:', error);
-                addError(translations[localStorage.getItem('language') || 'en'].error);
+                // Add assistant message
+                addMessage(data.response, false, data.category, data.tokens);
+                
+            } catch (error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message assistant mb-4';
+                errorDiv.innerHTML = `
+                    <div class="error-message p-4 rounded-ios">
+                        ${error.message || translations[localStorage.getItem('language') || 'en'].error}
+                    </div>
+                `;
+                chatContainer.appendChild(errorDiv);
+            } finally {
+                hideLoading();
             }
         }
 
@@ -407,8 +333,87 @@
             }
         });
 
-        // Focus input on page load
-        queryInput.focus();
+        // Initialize
+        let currentLang = localStorage.getItem('language') || 'en';
+        chatTitle.textContent = translations[currentLang].title;
+        queryInput.placeholder = translations[currentLang].placeholder;
+        sendButton.textContent = translations[currentLang].send;
     </script>
+
+    <style>
+        .message {
+            max-width: 80%;
+        }
+
+        .message.user {
+            margin-left: auto;
+        }
+
+        .message.assistant {
+            margin-right: auto;
+        }
+
+        .message-content {
+            background: var(--message-bg, #f3f4f6);
+            color: var(--text-primary, #1f2937);
+        }
+
+        .message.user .message-content {
+            background: var(--primary-color, #3b82f6);
+            color: white;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: var(--badge-bg, #e5e7eb);
+            color: var(--badge-text, #4b5563);
+            border-radius: 9999px;
+            font-size: 0.875rem;
+        }
+
+        .loading {
+            background: var(--message-bg, #f3f4f6);
+            color: var(--text-secondary, #6b7280);
+        }
+
+        .loading-dots {
+            display: inline-flex;
+            gap: 0.25rem;
+        }
+
+        .dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            background: currentColor;
+            border-radius: 9999px;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        .error-message {
+            background: var(--error-bg, #fee2e2);
+            color: var(--error-color, #dc2626);
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Dark mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --message-bg: #374151;
+                --text-primary: #f3f4f6;
+                --badge-bg: #4b5563;
+                --badge-text: #e5e7eb;
+                --error-bg: #7f1d1d;
+                --error-color: #fecaca;
+            }
+        }
+    </style>
 </body>
 </html> 

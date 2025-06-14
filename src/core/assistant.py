@@ -1,6 +1,8 @@
 import os
 import httpx
 from typing import Dict, Any, List
+from src.prompt_categories import detect_category, category_map
+from src.utils.cleaner import clean_gpt_reply
 
 # Only load .env in development
 if os.environ.get("FLASK_ENV") != "production":
@@ -24,22 +26,8 @@ class Assistant:
         
         # Language-specific system prompts
         self.system_prompts = {
-            'en': "You are Chaysh, a helpful AI assistant. Provide clear, concise responses and relevant suggestions in English.",
-            'pl': "Jesteś Chaysh, pomocnym asystentem AI. Odpowiadaj jasno i zwięźle po polsku, dostarczając odpowiednie sugestie."
-        }
-        
-        # Language-specific suggestions
-        self.suggestions = {
-            'en': [
-                "Can you elaborate on that?",
-                "What specific aspects are you interested in?",
-                "Would you like more detailed information?"
-            ],
-            'pl': [
-                "Czy możesz to rozwinąć?",
-                "Jakie konkretne aspekty Cię interesują?",
-                "Czy chciałbyś bardziej szczegółowe informacje?"
-            ]
+            'en': "You are Chaysh, a helpful AI assistant. Provide clear, concise responses based on the detected category.",
+            'pl': "Jesteś Chaysh, pomocnym asystentem AI. Odpowiadaj jasno i zwięźle zgodnie z wykrytą kategorią."
         }
         
     def _truncate_prompt(self, prompt: str, max_length: int = 600) -> str:
@@ -47,88 +35,67 @@ class Assistant:
         return prompt[:max_length] if len(prompt) > max_length else prompt
         
     async def process_query(self, query: str, lang: str = 'en') -> Dict[str, Any]:
-        """Process a user query and return AI response with suggestions."""
+        """Process a user query and return a response."""
         try:
-            # Truncate user input
-            truncated_query = self._truncate_prompt(query)
+            # Detect category and get template
+            category_result = detect_category(query)
+            if category_result:
+                category, template = category_result
+                rewritten_prompt = template.format(target=query.strip())
+            else:
+                category = None
+                rewritten_prompt = query.strip()
             
-            # Get language-specific system prompt
-            system_prompt = self.system_prompts.get(lang, self.system_prompts['en'])
+            # Prepare messages for API
+            messages = [
+                {"role": "system", "content": self.system_prompts[lang]},
+                {"role": "user", "content": rewritten_prompt}
+            ]
             
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://chaysh-1.onrender.com",
-                "X-Title": "Chaysh AI Assistant"
-            }
-            
-            data = {
-                "model": self.model,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": truncated_query}
-                ],
-                "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
-                "top_p": self.top_p
-            }
-            
-            print(f"Making API request to {self.api_url} with model {self.model}")
-            
+            # Call OpenRouter API
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     self.api_url,
-                    headers=headers,
-                    json=data
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": self.model,
+                        "messages": messages,
+                        "max_tokens": self.max_tokens,
+                        "temperature": self.temperature,
+                        "top_p": self.top_p
+                    }
                 )
                 
-                if response.status_code == 401:
-                    print("API Error: Unauthorized - Invalid or missing API key")
-                    error_msg = "I apologize, but I'm currently unable to process requests due to an authentication issue. Please try again later."
-                    if lang == 'pl':
-                        error_msg = "Przepraszam, ale obecnie nie mogę przetwarzać żądań z powodu problemu z uwierzytelnianiem. Spróbuj ponownie później."
-                    return {
-                        "error": "Authentication failed",
-                        "response": error_msg,
-                        "suggestions": []
-                    }
-                
-                response.raise_for_status()
+                if response.status_code != 200:
+                    raise Exception(f"API error: {response.text}")
+                    
                 result = response.json()
+                raw_response = result['choices'][0]['message']['content']
                 
-                # Extract and truncate the assistant's message
-                assistant_message = result['choices'][0]['message']['content']
-                truncated_response = self._truncate_prompt(assistant_message, 300)
+                # Clean the response
+                cleaned_response = clean_gpt_reply(raw_response)
                 
-                # Get language-specific suggestions
-                suggestions = self._generate_suggestions(truncated_query, lang)
-                
-                return {
-                    "response": truncated_response,
-                    "suggestions": suggestions
+                # Get token usage
+                usage = result.get('usage', {})
+                tokens = {
+                    "prompt": usage.get('prompt_tokens', 0),
+                    "completion": usage.get('completion_tokens', 0),
+                    "total": usage.get('total_tokens', 0)
                 }
                 
-        except httpx.HTTPStatusError as e:
-            print(f"HTTP Error: {e.response.status_code} - {e.response.text}")
-            error_msg = "I apologize, but I encountered an error while processing your request. Please try again later."
-            if lang == 'pl':
-                error_msg = "Przepraszam, ale napotkałem błąd podczas przetwarzania Twojego żądania. Spróbuj ponownie później."
-            return {
-                "error": f"API request failed: {e.response.status_code}",
-                "response": error_msg,
-                "suggestions": []
-            }
+                return {
+                    "response": cleaned_response,
+                    "category": category,
+                    "tokens": tokens
+                }
+                
         except Exception as e:
-            print(f"Error processing query: {str(e)}")
-            error_msg = "I apologize, but I encountered an unexpected error. Please try again later."
-            if lang == 'pl':
-                error_msg = "Przepraszam, ale napotkałem nieoczekiwany błąd. Spróbuj ponownie później."
+            print(f"Error in process_query: {str(e)}")
             return {
-                "error": str(e),
-                "response": error_msg,
-                "suggestions": []
-            }
-    
-    def _generate_suggestions(self, query: str, lang: str = 'en') -> List[str]:
-        """Generate relevant follow-up suggestions based on the query and language."""
-        return self.suggestions.get(lang, self.suggestions['en'])[:3]  # Return top 3 suggestions 
+                "response": "I encountered an error. Please try again with a specific category.",
+                "category": None,
+                "error": str(e)
+            } 
