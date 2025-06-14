@@ -24,6 +24,12 @@ class Assistant:
         self.max_tokens = settings.OPENAI_MAX_TOKENS
         self.temperature = settings.OPENAI_TEMPERATURE
         
+        # Language-specific system prompts
+        self.system_prompts = {
+            'en': "You are Chaysh, a helpful AI assistant. Provide clear, concise responses based on the detected category.",
+            'pl': "Jesteś Chaysh, pomocnym asystentem AI. Odpowiadaj jasno i zwięźle zgodnie z wykrytą kategorią."
+        }
+        
         # Log API key verification (first 4 chars only)
         if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
             logger.info(f"[Chaysh] API key: {settings.OPENAI_API_KEY[:4]}... ✅")
@@ -73,7 +79,8 @@ class Assistant:
         self,
         user_input: str,
         context: List[Dict[str, str]] = None,
-        category_override: Optional[str] = None
+        category_override: Optional[str] = None,
+        lang: str = 'en'
     ) -> Dict[str, Any]:
         """
         Get a response from the assistant.
@@ -82,6 +89,7 @@ class Assistant:
             user_input: The user's input message
             context: Optional conversation context
             category_override: Optional category to override auto-detection
+            lang: Language code ('en' or 'pl')
             
         Returns:
             Dictionary containing response, context, and category
@@ -89,6 +97,9 @@ class Assistant:
         try:
             # Build the complete prompt
             messages = self.build_prompt(user_input, context, category_override)
+            
+            # Add system prompt
+            messages.insert(0, {"role": "system", "content": self.system_prompts[lang]})
             
             # Get response from OpenAI
             response = self.client.chat.completions.create(
