@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 import openai
 from .config import settings
-from src.prompt_categories import detect_category, DEFAULT_TIP, category_map
+from src.prompt_categories import detect_category, category_map
 from src.utils.cleaner import clean_gpt_reply, format_table_response
 
 logger = logging.getLogger(__name__)
@@ -41,10 +41,6 @@ class Assistant:
             List of message dictionaries for the API
         """
         messages = []
-        
-        # Add system tip only if no context exists (first request)
-        if not context:
-            messages.append(DEFAULT_TIP)
         
         # Add conversation context if available (keep last 4 messages)
         if context:
@@ -88,15 +84,9 @@ class Assistant:
             category_override: Optional category to override auto-detection
             
         Returns:
-            Dictionary containing response, context, tip, and category
+            Dictionary containing response, context, and category
         """
         try:
-            # Initialize tip handling - only show on first request
-            initial_response = None
-            if not context:
-                context = [DEFAULT_TIP]
-                initial_response = DEFAULT_TIP["content"]
-            
             # Build the complete prompt
             messages = self.build_prompt(user_input, context, category_override)
             
@@ -111,6 +101,10 @@ class Assistant:
             # Extract and clean the response
             reply = response.choices[0].message.content
             cleaned_reply = clean_gpt_reply(reply)
+            
+            # Log cleaned output in debug mode
+            if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
+                logger.debug(f"🧹 Cleaned GPT output: {cleaned_reply}")
             
             # Format table response if needed
             if category_override in ["compare", "price"] or (category_result := detect_category(user_input)) and category_result[0] in ["compare", "price"]:
@@ -145,7 +139,6 @@ class Assistant:
             return {
                 "response": cleaned_reply,
                 "context": new_context,
-                "tip": initial_response,  # Only set on first request
                 "category": category,
                 "tokens": tokens if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes") else None
             }
@@ -154,9 +147,8 @@ class Assistant:
             # Log the error and return a user-friendly message
             logger.error(f"Error: {str(e)}")
             return {
-                "response": "I apologize, but I encountered an error. Please try using a category like 'compare' or 'weather'.",
+                "response": "I encountered an error. Please try again with a specific category like 'compare' or 'price'.",
                 "context": context or [],
-                "tip": DEFAULT_TIP["content"] if not context else None,  # Only show tip on first request
                 "category": None,
                 "error": str(e) if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes") else None
             } 

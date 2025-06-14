@@ -2,14 +2,6 @@
 
 {% block content %}
 <div class="chat-container">
-    <!-- System Tip -->
-    <div id="system-tip" class="system-tip" style="display: none;">
-        <div class="tip-content">
-            <span id="tip-text"></span>
-            <button onclick="dismissTip()" class="dismiss-btn" aria-label="Dismiss tip">×</button>
-        </div>
-    </div>
-
     <!-- Chat Messages -->
     <div id="chat-messages" class="chat-messages"></div>
 
@@ -34,37 +26,6 @@
 </div>
 
 <style>
-/* System Tip */
-.system-tip {
-    background: var(--tip-bg);
-    border: 1px solid var(--tip-border);
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 16px;
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-.tip-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-}
-
-.dismiss-btn {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 20px;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-}
-
-.dismiss-btn:hover {
-    color: var(--text-primary);
-}
-
 /* Chat Messages */
 .chat-messages {
     display: flex;
@@ -249,8 +210,6 @@ th {
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
     :root {
-        --tip-bg: #2d3748;
-        --tip-border: #4a5568;
         --message-bg: #2d3748;
         --badge-bg: #4a5568;
         --badge-text: #e2e8f0;
@@ -267,26 +226,6 @@ th {
 // Session management
 function clearChat() {
     document.getElementById('chat-messages').innerHTML = '';
-}
-
-function resetTip() {
-    sessionStorage.removeItem('tipShown');
-    document.getElementById('system-tip').style.display = 'none';
-}
-
-// System tip handling
-function showTip(content) {
-    if (!sessionStorage.getItem('tipShown')) {
-        const tip = document.getElementById('system-tip');
-        const tipText = document.getElementById('tip-text');
-        tipText.textContent = content;
-        tip.style.display = 'block';
-        sessionStorage.setItem('tipShown', 'true');
-    }
-}
-
-function dismissTip() {
-    document.getElementById('system-tip').style.display = 'none';
 }
 
 // Response formatting
@@ -418,11 +357,6 @@ async function handleSubmit(event) {
             throw new Error(data.error);
         }
         
-        // Show tip if provided and not shown before
-        if (data.tip) {
-            showTip(data.tip);
-        }
-        
         // Add assistant message
         addMessage(data.response, false, data.category, data.tokens);
         
@@ -443,7 +377,6 @@ async function handleSubmit(event) {
 // Initialize
 window.onload = () => {
     clearChat();
-    resetTip();
     if (os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")) {
         console.log("Session started");
     }
