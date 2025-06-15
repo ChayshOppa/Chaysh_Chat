@@ -4,7 +4,59 @@
 
 [Live Demo](https://chaysh.onrender.com/)
 
-# Chaysh AI Assistant
+# Chaysh_Chat (v1.0)
+
+Chaysh_Chat is a category-aware AI assistant frontend powered by OpenRouter + GPT 4.1-nano.
+
+---
+
+## 🚀 Features
+
+- 🔍 **Category Detection**:  
+  Automatically detects the user's intent (pricing, timeline, define, etc.) using multilingual keyword sets.
+
+- 🧠 **Custom System Prompts**:  
+  Injects dynamic system messages based on category to improve GPT response quality.
+
+- 📦 **Keyword Logic from JSON**:  
+  Category triggers are defined in editable files:  
+  - `src/categories/en.json`  
+  - `src/categories/pl.json`
+
+- 🌍 **Multilingual**:  
+  Detects categories using both English and Polish triggers.
+
+- 🎨 **UI**:  
+  - Simple, clean interface  
+  - Working dark/light toggle  
+  - Floating control menu  
+  - Responsive on mobile and desktop
+
+---
+
+## 🔧 Current Deployment
+
+- 🌐 Render URL: [https://chaysh-1.onrender.com](https://chaysh-1.onrender.com)
+- 🧠 Model: `openai/gpt-4.1-nano` via OpenRouter
+- ✅ API Key loaded and validated
+- 🛠 Logs confirm backend prompt logic works per category
+
+---
+
+## 🗂 Structure
+
+- `src/core/assistant.py`: OpenRouter handling + category prompt injection  
+- `src/core/category_detector.py`: Keyword matcher for categories  
+- `src/routes/chat.py`: Chat endpoint  
+- `src/templates/chat.html`: Chat UI  
+- `src/categories/`: Keyword triggers  
+- `src/locales/`: UI translations
+
+---
+
+## ✅ Status: STABLE
+
+This is the working release of `Chaysh_Chat v1.0`.
 
 ## 🧠 Project Summary
 Chaysh is a lightweight Flask AI assistant deployed on Render. It uses OpenRouter and GPT-4.1 Nano to provide fast, cost-efficient answers and suggestions based on user input.
