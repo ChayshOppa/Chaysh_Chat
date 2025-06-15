@@ -1,0 +1,12 @@
+{
+    "price": ["cena", "ile kosztuje", "koszt", "cennik", "kupić", "zakup", "wartość"],
+    "compare": ["porównaj", "versus", "vs", "różnica między", "lepszy niż", "porównanie"],
+    "define": ["definicja", "co to jest", "wyjaśnij", "znaczenie", "określenie"],
+    "timeline": ["kiedy", "harmonogram", "termin", "data", "czas", "kalendarz"],
+    "person": ["kim jest", "o", "biografia", "bio", "osoba", "profil"],
+    "location": ["gdzie", "lokalizacja", "miejsce", "adres", "mapa", "dojazd"],
+    "weather": ["pogoda", "prognoza", "temperatura", "klimat", "deszcz", "słonecznie"],
+    "summary": ["podsumuj", "streszczenie", "skrót", "przegląd", "podsumowanie"],
+    "event": ["wydarzenie", "happening", "okazja", "festival", "koncert", "pokaz"],
+    "contact": ["kontakt", "email", "telefon", "skontaktuj się", "napisz", "wiadomość"]
+} 

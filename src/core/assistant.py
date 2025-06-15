@@ -13,6 +13,7 @@ import openai
 from src.config import settings
 from src.prompt_categories import detect_category, category_map
 from src.utils.cleaner import clean_gpt_reply, format_table_response
+from .category_detector import CategoryDetector
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,8 @@ class Assistant:
         # Log API key verification (first 4 chars only)
         if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
             logger.info(f"[Chaysh] API key: {settings.OPENAI_API_KEY[:4]}... ✅")
+
+        self.category_detector = CategoryDetector()
 
     def build_prompt(self, user_input: str, context: List[Dict[str, str]] = None, category_override: Optional[str] = None) -> List[Dict[str, str]]:
         """
@@ -75,91 +78,38 @@ class Assistant:
         messages.append({"role": "user", "content": rewritten_prompt})
         return messages
 
-    def get_response(
-        self,
-        user_input: str,
-        context: List[Dict[str, str]] = None,
-        category_override: Optional[str] = None,
-        lang: str = 'en'
-    ) -> Dict[str, Any]:
+    async def get_response(self, user_input: str, context: list = None, category_override: str = None, lang: str = 'en') -> Dict[str, Any]:
         """
         Get a response from the assistant.
         
         Args:
-            user_input: The user's input message
-            context: Optional conversation context
-            category_override: Optional category to override auto-detection
-            lang: Language code ('en' or 'pl')
+            user_input: The user's input text
+            context: Optional list of previous messages for context
+            category_override: Optional category to force
+            lang: Language code for category detection
             
         Returns:
-            Dictionary containing response, context, and category
+            Dictionary containing the response and metadata
         """
         try:
-            # Build the complete prompt
-            messages = self.build_prompt(user_input, context, category_override)
-            
-            # Add system prompt
-            messages.insert(0, {"role": "system", "content": self.system_prompts[lang]})
-            
-            # Get response from OpenAI
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                max_tokens=self.max_tokens,
-                temperature=self.temperature
-            )
-            
-            # Extract and clean the response
-            reply = response.choices[0].message.content
-            cleaned_reply = clean_gpt_reply(reply)
-            
-            # Log cleaned output in debug mode
-            if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
-                logger.debug(f"🧹 Cleaned GPT output: {cleaned_reply}")
-            
-            # Format table response if needed
-            if category_override in ["compare", "price"] or (category_result := detect_category(user_input)) and category_result[0] in ["compare", "price"]:
-                formatted_reply = format_table_response(cleaned_reply)
-                if formatted_reply:
-                    cleaned_reply = formatted_reply
-            
-            # Get category from the last message
-            category = None
-            if messages[-1]["role"] == "user":
-                if category_override and category_override in category_map:
-                    category = category_override
-                else:
-                    category_result = detect_category(user_input)
-                    category = category_result[0] if category_result else None
-            
-            # Update context with the new exchange (keep last 5 messages total)
-            new_context = messages[-4:] + [{"role": "assistant", "content": cleaned_reply}]
-            
-            # Get token usage
-            usage = response.usage
-            tokens = {
-                "prompt": usage.prompt_tokens,
-                "completion": usage.completion_tokens,
-                "total": usage.total_tokens
-            }
-            
-            # Log success in debug mode
-            if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
-                logger.debug(f"Category: {category}, Tokens: {tokens['total']}")
-            
-            return {
-                "response": cleaned_reply,
-                "context": new_context,
-                "category": category,
-                "tokens": tokens if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes") else None
-            }
-            
+            # Detect category if not overridden
+            category = category_override or self.category_detector.detect_category(user_input, lang)
+            logger.info(f"Detected category: {category} for input: {user_input[:50]}...")
+
+            # Get response from OpenRouter
+            from ..services.openrouter_service import OpenRouterService
+            openrouter = OpenRouterService()
+            response = await openrouter.get_ai_response(user_input)
+
+            # Add category to response if detected
+            if category:
+                response['category'] = category
+
+            return response
+
         except Exception as e:
-            # Log the error and return a user-friendly message
-            logger.error(f"Error: {str(e)}")
+            logger.error(f"Error in get_response: {str(e)}")
             return {
-                "response": "I encountered an error. Please try again with a specific category like 'compare' or 'price'.",
-                "context": context or [],
-                "category": None,
-                "error": str(e) if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes") else None
+                'error': 'An error occurred while processing your request',
+                'category': None
             } 
