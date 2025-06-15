@@ -1,7 +1,7 @@
 import httpx
 import json
 import logging
-from src.config import Config
+from app.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,6 @@ class OpenRouterService:
 
     async def get_ai_response(self, query: str) -> dict:
         try:
-            print("Query received:", query)  # Debug log
-            logger.info(f"Processing query: {query}")
-
             if not self.api_key:
                 logger.error("API key is not configured")
                 return self._get_error_response("API key is not configured")
@@ -36,7 +33,6 @@ class OpenRouterService:
                 {"role": "user", "content": query}
             ]
 
-            logger.debug(f"Sending request to OpenRouter API with model: {Config.DEFAULT_MODEL}")
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     self.api_url,
@@ -52,7 +48,6 @@ class OpenRouterService:
                 if response.status_code == 200:
                     result = response.json()
                     ai_response = result['choices'][0]['message']['content']
-                    logger.debug("Successfully received response from OpenRouter API")
                     return self._format_response(ai_response, char_limit)
                 else:
                     error_detail = response.text

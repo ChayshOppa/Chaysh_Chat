@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4">
+    <!-- Header Section -->
+    <div class="text-center mb-12 mt-8">
+        <h1 id="chat-title" class="text-4xl font-bold text-gray-900 dark:text-white mb-4 transition-colors">Chat CTC</h1>
+        
+        <!-- Language Toggle -->
+        <div class="flex justify-center gap-4 mb-8">
+            <button id="lang-en" class="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
+                🇬🇧 English
+            </button>
+            <button id="lang-pl" class="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
+                🇵🇱 Polski
+            </button>
+        </div>
+        
+        <!-- Chat Form -->
+        <form id="chat-form" class="relative max-w-2xl mx-auto">
+            <div class="relative">
+                <input type="text" 
+                       id="message-input"
+                       class="w-full px-6 py-4 text-lg rounded-ios border-2 border-gray-200 dark:border-gray-700 
+                              bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                              focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800
+                              transition-all duration-200 shadow-sm"
+                       placeholder="Ask me anything..."
+                       autocomplete="off"
+                       required>
+                <button type="submit" 
+                        id="send-button"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-primary-500
+                               dark:text-gray-400 dark:hover:text-primary-400 transition-colors">
+                    Send
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Chat Messages -->
+    <div id="chat-messages" class="space-y-6">
+        <!-- Messages will be dynamically inserted here -->
+    </div>
+
+    <!-- Suggestions -->
+    <div class="mt-8 flex flex-wrap justify-center gap-4">
+        <button id="suggestion-1" class="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
+            Can you elaborate on that?
+        </button>
+        <button id="suggestion-2" class="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
+            What specific aspects are you interested in?
+        </button>
+        <button id="suggestion-3" class="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
+            Would you like more detailed information?
+        </button>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loading" class="hidden text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-500 border-t-transparent"></div>
+    </div>
+
+    <!-- Error Message -->
+    <div id="error" class="hidden text-center py-4 px-6 rounded-ios bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
+        An error occurred while processing your request.
+    </div>
+</div>
+
+<script>
+// Language definitions
+const locales = {
+    en: {
+        title: "Chat CTC",
+        placeholder: "Ask me anything...",
+        send: "Send",
+        suggestion1: "Can you elaborate on that?",
+        suggestion2: "What specific aspects are you interested in?",
+        suggestion3: "Would you like more detailed information?"
+    },
+    pl: {
+        title: "Czat CTC",
+        placeholder: "Zadaj pytanie...",
+        send: "Wyślij",
+        suggestion1: "Czy możesz to rozwinąć?",
+        suggestion2: "Jakie konkretnie aspekty Cię interesują?",
+        suggestion3: "Czy chcesz bardziej szczegółowe informacje?"
+    }
+};
+
+// Apply language function
+function applyLanguage(lang) {
+    const t = locales[lang] || locales['en'];
+    document.title = t.title;
+    document.getElementById("chat-title").innerText = t.title;
+    document.getElementById("message-input").placeholder = t.placeholder;
+    document.getElementById("send-button").innerText = t.send;
+    document.getElementById("suggestion-1").innerText = t.suggestion1;
+    document.getElementById("suggestion-2").innerText = t.suggestion2;
+    document.getElementById("suggestion-3").innerText = t.suggestion3;
+    localStorage.setItem("lang", lang);
+}
+
+// Language button event listeners
+document.getElementById("lang-en").addEventListener("click", () => applyLanguage("en"));
+document.getElementById("lang-pl").addEventListener("click", () => applyLanguage("pl"));
+
+// Initialize with saved language
+const savedLang = localStorage.getItem("lang") || "en";
+applyLanguage(savedLang);
+
+// Chat form submission
+document.getElementById('chat-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const message = document.getElementById('message-input').value.trim();
+    if (!message) return;
+
+    // Reset UI state
+    document.getElementById('error').classList.add('hidden');
+    document.getElementById('loading').classList.remove('hidden');
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message })
+        });
+
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        // Add message to chat
+        const messagesDiv = document.getElementById('chat-messages');
+        const messageElement = document.createElement('div');
+        messageElement.className = 'bg-white dark:bg-gray-800 rounded-ios shadow-lg p-6 transition-all duration-200';
+        messageElement.innerHTML = `
+            <div class="prose dark:prose-invert max-w-none">
+                <p class="text-gray-700 dark:text-gray-300">${data.response}</p>
+            </div>
+        `;
+        messagesDiv.appendChild(messageElement);
+        
+        // Clear input
+        document.getElementById('message-input').value = '';
+        
+    } catch (error) {
+        console.error('Chat error:', error);
+        document.getElementById('error').textContent = error.message;
+        document.getElementById('error').classList.remove('hidden');
+    } finally {
+        document.getElementById('loading').classList.add('hidden');
+    }
+});
+
+// Suggestion click handlers
+document.querySelectorAll('#suggestion-1, #suggestion-2, #suggestion-3').forEach(button => {
+    button.addEventListener('click', () => {
+        document.getElementById('message-input').value = button.innerText;
+        document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+    });
+});
+
+// Focus input on page load
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('message-input').focus();
+});
+</script>
+{% endblock %} 

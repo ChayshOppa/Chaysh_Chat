@@ -1,10 +1,9 @@
 # Environment variables
 .env
-.env.*
 
 # Project specific
-Chaysh.zip
-cursor-rules.md
+oldy/
+*.log
 
 # Python
 __pycache__/
@@ -30,9 +29,8 @@ wheels/
 
 # Virtual Environment
 venv/
-ENV/
-env/
 .venv/
+ENV/
 
 # IDE
 .idea/

@@ -1,115 +1,134 @@
-"""
-Core assistant functionality for Chaysh.
-Handles prompt rewriting, context management, and response formatting.
-"""
-
-import json
-import re
-import logging
 import os
-from typing import Dict, List, Optional, Any
-from datetime import datetime
-import openai
-from src.config import settings
-from src.prompt_categories import detect_category, category_map
-from src.utils.cleaner import clean_gpt_reply, format_table_response
-from .category_detector import CategoryDetector
+import httpx
+from typing import Dict, Any, List
 
-logger = logging.getLogger(__name__)
+# Only load .env in development
+if os.environ.get("FLASK_ENV") != "production":
+    from dotenv import load_dotenv
+    load_dotenv()
+
+# Get API key at module level
+api_key = os.getenv("OPENROUTER_API_KEY")
+print("API key present:", bool(api_key))  # for logging
+
+if not api_key:
+    raise Exception("OPENROUTER_API_KEY not found")
 
 class Assistant:
     def __init__(self):
-        """Initialize the assistant with OpenAI configuration."""
-        self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-        self.model = settings.OPENAI_MODEL
-        self.max_tokens = settings.OPENAI_MAX_TOKENS
-        self.temperature = settings.OPENAI_TEMPERATURE
+        self.api_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.model = "openai/gpt-4.1-nano"  # Updated to GPT-4.1 Nano
+        self.max_tokens = 300  # Limit response length
+        self.temperature = 0.7  # Balanced creativity
+        self.top_p = 0.9  # Increased determinism
         
         # Language-specific system prompts
         self.system_prompts = {
-            'en': "You are Chaysh, a helpful AI assistant. Provide clear, concise responses based on the detected category.",
-            'pl': "Jesteś Chaysh, pomocnym asystentem AI. Odpowiadaj jasno i zwięźle zgodnie z wykrytą kategorią."
+            'en': "You are Chaysh, a helpful AI assistant. Provide clear, concise responses and relevant suggestions in English.",
+            'pl': "Jesteś Chaysh, pomocnym asystentem AI. Odpowiadaj jasno i zwięźle po polsku, dostarczając odpowiednie sugestie."
         }
         
-        # Log API key verification (first 4 chars only)
-        if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
-            logger.info(f"[Chaysh] API key: {settings.OPENAI_API_KEY[:4]}... ✅")
-
-        self.category_detector = CategoryDetector()
-
-    def build_prompt(self, user_input: str, context: List[Dict[str, str]] = None, category_override: Optional[str] = None) -> List[Dict[str, str]]:
-        """
-        Build a complete prompt with context and category-based rewriting.
+        # Language-specific suggestions
+        self.suggestions = {
+            'en': [
+                "Can you elaborate on that?",
+                "What specific aspects are you interested in?",
+                "Would you like more detailed information?"
+            ],
+            'pl': [
+                "Czy możesz to rozwinąć?",
+                "Jakie konkretne aspekty Cię interesują?",
+                "Czy chciałbyś bardziej szczegółowe informacje?"
+            ]
+        }
         
-        Args:
-            user_input: The user's input message
-            context: Optional conversation context
-            category_override: Optional category to override auto-detection
-            
-        Returns:
-            List of message dictionaries for the API
-        """
-        messages = []
+    def _truncate_prompt(self, prompt: str, max_length: int = 600) -> str:
+        """Truncate prompt to max length."""
+        return prompt[:max_length] if len(prompt) > max_length else prompt
         
-        # Add conversation context if available (keep last 4 messages)
-        if context:
-            messages.extend(context[-4:])
-        
-        # Handle category detection or override
-        if category_override and category_override in category_map:
-            # Use override if valid category
-            category = category_override
-            template = category_map[category]["template"]
-            rewritten_prompt = template.format(target=user_input.strip())
-            if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
-                logger.debug(f"Category override: {category}")
-        else:
-            # Auto-detect category
-            category_result = detect_category(user_input)
-            if category_result:
-                category, template = category_result
-                rewritten_prompt = template.format(target=user_input.strip())
-                if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
-                    logger.debug(f"Detected category: {category}")
-            else:
-                rewritten_prompt = user_input.strip()
-                category = None
-        
-        messages.append({"role": "user", "content": rewritten_prompt})
-        return messages
-
-    async def get_response(self, user_input: str, context: list = None, category_override: str = None, lang: str = 'en') -> Dict[str, Any]:
-        """
-        Get a response from the assistant.
-        
-        Args:
-            user_input: The user's input text
-            context: Optional list of previous messages for context
-            category_override: Optional category to force
-            lang: Language code for category detection
-            
-        Returns:
-            Dictionary containing the response and metadata
-        """
+    async def process_query(self, query: str, lang: str = 'en') -> Dict[str, Any]:
+        """Process a user query and return AI response with suggestions."""
         try:
-            # Detect category if not overridden
-            category = category_override or self.category_detector.detect_category(user_input, lang)
-            logger.info(f"Detected category: {category} for input: {user_input[:50]}...")
-
-            # Get response from OpenRouter
-            from ..services.openrouter_service import OpenRouterService
-            openrouter = OpenRouterService()
-            response = await openrouter.get_ai_response(user_input)
-
-            # Add category to response if detected
-            if category:
-                response['category'] = category
-
-            return response
-
-        except Exception as e:
-            logger.error(f"Error in get_response: {str(e)}")
+            # Truncate user input
+            truncated_query = self._truncate_prompt(query)
+            
+            # Get language-specific system prompt
+            system_prompt = self.system_prompts.get(lang, self.system_prompts['en'])
+            
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://chaysh-1.onrender.com",
+                "X-Title": "Chaysh AI Assistant"
+            }
+            
+            data = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": truncated_query}
+                ],
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens,
+                "top_p": self.top_p
+            }
+            
+            print(f"Making API request to {self.api_url} with model {self.model}")
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    self.api_url,
+                    headers=headers,
+                    json=data
+                )
+                
+                if response.status_code == 401:
+                    print("API Error: Unauthorized - Invalid or missing API key")
+                    error_msg = "I apologize, but I'm currently unable to process requests due to an authentication issue. Please try again later."
+                    if lang == 'pl':
+                        error_msg = "Przepraszam, ale obecnie nie mogę przetwarzać żądań z powodu problemu z uwierzytelnianiem. Spróbuj ponownie później."
+                    return {
+                        "error": "Authentication failed",
+                        "response": error_msg,
+                        "suggestions": []
+                    }
+                
+                response.raise_for_status()
+                result = response.json()
+                
+                # Extract and truncate the assistant's message
+                assistant_message = result['choices'][0]['message']['content']
+                truncated_response = self._truncate_prompt(assistant_message, 300)
+                
+                # Get language-specific suggestions
+                suggestions = self._generate_suggestions(truncated_query, lang)
+                
+                return {
+                    "response": truncated_response,
+                    "suggestions": suggestions
+                }
+                
+        except httpx.HTTPStatusError as e:
+            print(f"HTTP Error: {e.response.status_code} - {e.response.text}")
+            error_msg = "I apologize, but I encountered an error while processing your request. Please try again later."
+            if lang == 'pl':
+                error_msg = "Przepraszam, ale napotkałem błąd podczas przetwarzania Twojego żądania. Spróbuj ponownie później."
             return {
-                'error': 'An error occurred while processing your request',
-                'category': None
-            } 
+                "error": f"API request failed: {e.response.status_code}",
+                "response": error_msg,
+                "suggestions": []
+            }
+        except Exception as e:
+            print(f"Error processing query: {str(e)}")
+            error_msg = "I apologize, but I encountered an unexpected error. Please try again later."
+            if lang == 'pl':
+                error_msg = "Przepraszam, ale napotkałem nieoczekiwany błąd. Spróbuj ponownie później."
+            return {
+                "error": str(e),
+                "response": error_msg,
+                "suggestions": []
+            }
+    
+    def _generate_suggestions(self, query: str, lang: str = 'en') -> List[str]:
+        """Generate relevant follow-up suggestions based on the query and language."""
+        return self.suggestions.get(lang, self.suggestions['en'])[:3]  # Return top 3 suggestions 
