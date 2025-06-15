@@ -237,24 +237,48 @@ async function handleSubmit(event) {
         }
         
         const data = await response.json();
-        addMessage(data.response, 'assistant');
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Display the response content
+        addMessage({
+            content: data.response,
+            category: data.category
+        }, 'assistant');
         
     } catch (error) {
         console.error('Error:', error);
-        addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+        addMessage({
+            content: 'Sorry, I encountered an error. Please try again.',
+            category: null
+        }, 'assistant');
     }
 }
 
-function addMessage(content, type) {
+function addMessage(message, type) {
     const messagesDiv = document.getElementById('chat-messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}`;
     
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
-    contentDiv.textContent = content;
+    const content = document.createElement('div');
+    content.className = 'message-content';
     
-    messageDiv.appendChild(contentDiv);
+    // Handle both string messages and object messages
+    if (typeof message === 'string') {
+        content.textContent = message;
+    } else {
+        // Add category badge if present
+        if (message.category) {
+            const badge = document.createElement('span');
+            badge.className = 'category-badge';
+            badge.textContent = message.category;
+            messageDiv.appendChild(badge);
+        }
+        content.textContent = message.content;
+    }
+    
+    messageDiv.appendChild(content);
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }

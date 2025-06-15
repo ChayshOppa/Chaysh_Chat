@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify
 from ..core.assistant import Assistant
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 chat_bp = Blueprint('chat', __name__)
@@ -12,7 +13,7 @@ def index():
     return render_template('chat.html')
 
 @chat_bp.route('/api/chat', methods=['POST'])
-async def chat():
+def chat():
     """Handle chat API requests."""
     try:
         data = request.get_json()
@@ -32,12 +33,12 @@ async def chat():
 
         # Get response from assistant
         logger.debug(f"Getting response from assistant for input: {user_input}")
-        response = await assistant.get_response(
+        response = asyncio.run(assistant.get_response(
             user_input=user_input,
             context=context,
             category_override=category if category else None,
             lang=lang
-        )
+        ))
         logger.debug(f"Assistant response: {response}")
 
         return jsonify(response)
