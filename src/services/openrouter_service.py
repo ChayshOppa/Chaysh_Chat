@@ -1,7 +1,7 @@
-import httpx
+import aiohttp
 import json
 import logging
-from app.config import Config
+from src.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class OpenRouterService:
                 {"role": "user", "content": query}
             ]
 
-            async with httpx.AsyncClient() as client:
+            async with aiohttp.AsyncClient() as client:
                 response = await client.post(
                     self.api_url,
                     headers=self.headers,
@@ -45,14 +45,14 @@ class OpenRouterService:
                     }
                 )
                 
-                if response.status_code == 200:
-                    result = response.json()
+                if response.status == 200:
+                    result = await response.json()
                     ai_response = result['choices'][0]['message']['content']
                     return self._format_response(ai_response, char_limit)
                 else:
-                    error_detail = response.text
-                    logger.error(f"API Error {response.status_code}: {error_detail}")
-                    return self._get_error_response(f"API Error {response.status_code}: {error_detail}")
+                    error_detail = await response.text()
+                    logger.error(f"API Error {response.status}: {error_detail}")
+                    return self._get_error_response(f"API Error {response.status}: {error_detail}")
 
         except Exception as e:
             logger.error(f"Error in get_ai_response: {str(e)}")
