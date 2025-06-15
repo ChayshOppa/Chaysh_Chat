@@ -4,6 +4,8 @@
 # Project specific
 oldy/
 *.log
+cursor-rules.md
+Chaysh.zip
 
 # Python
 __pycache__/
@@ -11,6 +13,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
+env/
 build/
 develop-eggs/
 dist/
