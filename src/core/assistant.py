@@ -1,6 +1,7 @@
 import os
 import httpx
 from typing import Dict, Any, List
+from src.core.category_detector import detect_category
 
 # Only load .env in development
 if os.environ.get("FLASK_ENV") != "production":
@@ -22,10 +23,30 @@ class Assistant:
         self.temperature = 0.7  # Balanced creativity
         self.top_p = 0.9  # Increased determinism
         
-        # Language-specific system prompts
-        self.system_prompts = {
+        # Base system prompts by language
+        self.base_prompts = {
             'en': "You are Chaysh, a helpful AI assistant. Provide clear, concise responses and relevant suggestions in English.",
             'pl': "Jesteś Chaysh, pomocnym asystentem AI. Odpowiadaj jasno i zwięźle po polsku, dostarczając odpowiednie sugestie."
+        }
+        
+        # Category-specific system prompts
+        self.category_prompts = {
+            'pricing': {
+                'en': "You are a pricing assistant. Find prices of user '{focus}'. Make a big estimation number on top, then generate a list of up to 10 positions with prices, product names, and where to buy.",
+                'pl': "Jesteś asystentem cenowym. Znajdź ceny dla '{focus}'. Podaj dużą liczbę szacunkową na górze, a następnie wygeneruj listę do 10 pozycji z cenami, nazwami produktów i gdzie kupić."
+            },
+            'timeline': {
+                'en': "You are an event calendar assistant. Find the next upcoming event or performance for '{focus}' and display the earliest date. Also include a short description of who they are.",
+                'pl': "Jesteś asystentem kalendarza wydarzeń. Znajdź następne nadchodzące wydarzenie lub występ dla '{focus}' i wyświetl najwcześniejszą datę. Dodaj też krótki opis kim są."
+            },
+            'define': {
+                'en': "You are a definition expert. Provide a short and clear explanation.",
+                'pl': "Jesteś ekspertem od definicji. Podaj krótkie i jasne wyjaśnienie."
+            },
+            'compare': {
+                'en': "You are a comparison assistant. Compare the two items given.",
+                'pl': "Jesteś asystentem porównawczym. Porównaj podane elementy."
+            }
         }
         
         # Language-specific suggestions
@@ -46,14 +67,23 @@ class Assistant:
         """Truncate prompt to max length."""
         return prompt[:max_length] if len(prompt) > max_length else prompt
         
+    def _get_system_prompt(self, category: str, focus: str, lang: str) -> str:
+        """Get the appropriate system prompt based on category and language."""
+        if category and category in self.category_prompts:
+            return self.category_prompts[category][lang].format(focus=focus)
+        return self.base_prompts.get(lang, self.base_prompts['en'])
+        
     async def process_query(self, query: str, lang: str = 'en') -> Dict[str, Any]:
         """Process a user query and return AI response with suggestions."""
         try:
+            # Detect category and focus
+            category, focus = detect_category(query, lang)
+            
             # Truncate user input
             truncated_query = self._truncate_prompt(query)
             
-            # Get language-specific system prompt
-            system_prompt = self.system_prompts.get(lang, self.system_prompts['en'])
+            # Get appropriate system prompt
+            system_prompt = self._get_system_prompt(category, focus, lang)
             
             headers = {
                 "Authorization": f"Bearer {api_key}",
@@ -105,7 +135,8 @@ class Assistant:
                 
                 return {
                     "response": truncated_response,
-                    "suggestions": suggestions
+                    "suggestions": suggestions,
+                    "category": category  # Include detected category in response
                 }
                 
         except httpx.HTTPStatusError as e:

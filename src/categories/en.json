@@ -1,0 +1,12 @@
+{
+  "pricing": ["how much", "price", "cost", "what price", "ile kosztuje", "za ile", "cena"],
+  "timeline": ["when", "schedule", "event", "kiedy", "kiedy gra"],
+  "define": ["what is", "define", "explain", "co to", "definicja"],
+  "compare": ["compare", "vs", "difference", "porównaj"],
+  "location": ["where", "based in", "gdzie", "lokalizacja"],
+  "person": ["who is", "kto to", "kim jest"],
+  "summary": ["summarize", "streść", "skróć"],
+  "contact": ["how to contact", "email", "kontakt"],
+  "platform": ["where to watch", "stream", "oglądać"],
+  "team": ["team info", "zespół", "drużyna"]
+} 
