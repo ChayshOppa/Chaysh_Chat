@@ -2,14 +2,8 @@ from flask import Flask, request, jsonify, render_template
 from src.core.assistant import Assistant
 import asyncio
 from functools import wraps
-import os
 
-# Create Flask app with correct template and static folders
-app = Flask(__name__,
-    template_folder=os.path.join(os.path.dirname(__file__), 'templates'),
-    static_folder=os.path.join(os.path.dirname(__file__), 'static')
-)
-
+app = Flask(__name__)
 assistant = Assistant()
 
 def async_route(f):
