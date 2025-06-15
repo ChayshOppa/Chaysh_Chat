@@ -21,7 +21,12 @@ const locales = {
         compare: "Compare",
         price: "Price",
         translate: "Translate",
-        summarize: "Summarize"
+        summarize: "Summarize",
+        define: "Define",
+        timeline: "Timeline",
+        location: "Location",
+        event: "Event",
+        contact: "Contact"
     },
     pl: {
         title: "Asystent Chaysh",
@@ -45,6 +50,11 @@ const locales = {
         compare: "Porównanie",
         price: "Cena",
         translate: "Tłumaczenie",
-        summarize: "Podsumowanie"
+        summarize: "Podsumowanie",
+        define: "Definicja",
+        timeline: "Oś czasu",
+        location: "Lokalizacja",
+        event: "Wydarzenie",
+        contact: "Kontakt"
     }
 }; 

@@ -16,23 +16,29 @@ async def chat():
     """Handle chat API requests."""
     try:
         data = request.get_json()
+        print("Received chat input:", data)  # Debug log
+        logger.info(f"Received chat request: {data}")
+
         user_input = data.get('message', '').strip()
         category = data.get('category', '').strip()
         context = data.get('context', [])
         lang = data.get('lang', 'en')
 
         if not user_input:
+            logger.warning("Empty message received")
             return jsonify({
                 'error': 'Message is required'
             }), 400
 
         # Get response from assistant
+        logger.debug(f"Getting response from assistant for input: {user_input}")
         response = await assistant.get_response(
             user_input=user_input,
             context=context,
             category_override=category if category else None,
             lang=lang
         )
+        logger.debug(f"Assistant response: {response}")
 
         return jsonify(response)
 

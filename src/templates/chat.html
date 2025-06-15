@@ -44,25 +44,10 @@
     <!-- Input Form -->
     <form id="chat-form" class="chat-form" onsubmit="handleSubmit(event)">
         <div class="input-group">
-            <select id="category-select" class="category-select">
-                <option value="">Auto-detect</option>
-                <option value="weather">Weather</option>
-                <option value="person">Person</option>
-                <option value="compare">Compare</option>
-                <option value="price">Price</option>
-                <option value="translate">Translate</option>
-                <option value="summarize">Summarize</option>
-            </select>
             <input type="text" id="message-input" class="message-input" placeholder="Type your message..." required>
             <button type="submit" class="send-btn">
                 <span class="send-icon">➤</span>
             </button>
-        </div>
-        <!-- Category List -->
-        <div class="category-list">
-            <strong>Available Categories:</strong>
-            <code>price</code>, <code>compare</code>, <code>summary</code>, <code>timeline</code>, <code>weather</code>,
-            <code>define</code>, <code>location</code>, <code>event</code>, <code>person</code>, <code>contact</code>
         </div>
     </form>
 </div>
@@ -149,39 +134,6 @@
     font-size: 1.2em;
 }
 
-/* Onboarding Message */
-.onboarding-message {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 1rem;
-    margin: 1rem;
-    color: var(--text-primary);
-}
-
-.onboarding-message code {
-    background: var(--code-bg);
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    font-family: monospace;
-}
-
-/* Category List */
-.category-list {
-    margin-top: 1rem;
-    padding: 0.5rem;
-    color: var(--text-secondary);
-    font-size: 0.9em;
-}
-
-.category-list code {
-    background: var(--code-bg);
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    font-family: monospace;
-    margin: 0 0.2rem;
-}
-
 /* Chat Messages */
 .chat-messages {
     display: flex;
@@ -249,54 +201,53 @@ table {
 th, td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid var(--table-border);
+    border-bottom: 1px solid var(--border-color);
 }
 
 th {
-    background: var(--table-header-bg);
+    background: var(--bg-secondary);
     font-weight: 600;
 }
 
 /* Input Form */
 .chat-form {
-    position: sticky;
+    position: fixed;
     bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem;
     background: var(--bg-primary);
-    padding: 16px;
     border-top: 1px solid var(--border-color);
 }
 
 .input-group {
     display: flex;
-    gap: 8px;
+    gap: 0.5rem;
     max-width: 800px;
     margin: 0 auto;
 }
 
-.category-select {
-    padding: 8px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    min-width: 120px;
-}
-
 .message-input {
     flex: 1;
-    padding: 12px;
+    padding: 0.75rem 1rem;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background: var(--bg-secondary);
     color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.message-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
 }
 
 .send-btn {
-    padding: 8px 16px;
-    background: var(--primary-color);
-    color: white;
+    padding: 0.75rem 1.5rem;
     border: none;
     border-radius: 8px;
+    background: var(--primary-color);
+    color: white;
     cursor: pointer;
     transition: background-color 0.2s;
 }
@@ -309,291 +260,113 @@ th {
     font-size: 1.2em;
 }
 
-/* Loading State */
-.loading {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    background: var(--message-bg);
-    border-radius: 12px;
-    color: var(--text-secondary);
-}
-
-.loading-dots {
-    display: flex;
-    gap: 4px;
-}
-
-.dot {
-    width: 8px;
-    height: 8px;
-    background: var(--text-secondary);
-    border-radius: 50%;
-    animation: bounce 1.4s infinite ease-in-out;
-}
-
-.dot:nth-child(1) { animation-delay: -0.32s; }
-.dot:nth-child(2) { animation-delay: -0.16s; }
-
-/* Error Message */
-.error-message {
-    color: var(--error-color);
-    padding: 12px 16px;
-    background: var(--error-bg);
-    border-radius: 12px;
-    margin: 8px 0;
-}
-
-/* Token Usage */
-.token-usage {
-    font-size: 0.8em;
-    color: var(--text-secondary);
-    margin-top: 4px;
-}
-
-/* Animations */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes bounce {
-    0%, 80%, 100% { transform: scale(0); }
-    40% { transform: scale(1); }
-}
-
-/* Dark Mode Variables */
-:root {
-    --bg-primary: #ffffff;
-    --bg-secondary: #f3f4f6;
-    --bg-hover: #e5e7eb;
-    --text-primary: #1f2937;
-    --text-secondary: #6b7280;
-    --border-color: #e5e7eb;
-    --code-bg: #f1f5f9;
-}
-
-.dark {
-    --bg-primary: #1f2937;
-    --bg-secondary: #374151;
-    --bg-hover: #4b5563;
-    --text-primary: #f9fafb;
-    --text-secondary: #d1d5db;
-    --border-color: #4b5563;
-    --code-bg: #374151;
+/* Responsive Design */
+@media (max-width: 768px) {
+    .message {
+        max-width: 90%;
+    }
+    
+    .menu-bar {
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+    
+    .chat-form {
+        padding: 0.5rem;
+    }
 }
 </style>
 
 <script>
-// Theme Toggle
-function toggleTheme() {
-    const body = document.body;
-    const currentTheme = body.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    body.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    updateThemeIcon(newTheme);
-}
-
-function updateThemeIcon(theme) {
-    const icon = document.querySelector('.theme-icon');
-    icon.textContent = theme === 'dark' ? '☀️' : '🌙';
-}
-
-// Language Switch
-function changeLanguage(lang) {
-    document.documentElement.lang = lang;
-    localStorage.setItem('language', lang);
-    updateUIText(lang);
-}
-
-function updateUIText(lang) {
-    const elements = document.querySelectorAll('[data-i18n]');
-    elements.forEach(element => {
-        const key = element.getAttribute('data-i18n');
-        if (locales[lang] && locales[lang][key]) {
-            element.textContent = locales[lang][key];
-        }
-    });
-}
-
-// Initialize theme and language
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize theme
     const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    // Initialize language
     const savedLang = localStorage.getItem('language') || 'en';
-    
-    document.body.setAttribute('data-theme', savedTheme);
     document.getElementById('langSwitch').value = savedLang;
+    changeLanguage(savedLang);
     
-    updateThemeIcon(savedTheme);
-    updateUIText(savedLang);
-});
-
-// Example query click handler
-document.querySelectorAll('.example-queries code').forEach(code => {
-    code.addEventListener('click', () => {
-        document.getElementById('message-input').value = code.textContent;
+    // Add click handlers for example queries
+    document.querySelectorAll('.example-queries code').forEach(code => {
+        code.addEventListener('click', function() {
+            document.getElementById('message-input').value = this.textContent;
+        });
     });
 });
 
-// Session management
-function clearChat() {
-    document.getElementById('chat-messages').innerHTML = '';
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
 }
 
-// Response formatting
-function formatResponse(text) {
-    // Handle markdown tables
-    if (text.includes('|') && text.includes('-')) {
-        const lines = text.split('\n');
-        let inTable = false;
-        let tableHtml = '<div class="table-container"><table>';
-        
-        for (const line of lines) {
-            if (line.includes('|') && !line.includes('---')) {
-                if (!inTable) {
-                    inTable = true;
-                    tableHtml = '<div class="table-container"><table>';
-                }
-                const cells = line.split('|').filter(cell => cell.trim());
-                tableHtml += '<tr>' + cells.map(cell => `<td>${cell.trim()}</td>`).join('') + '</tr>';
-            } else if (line.includes('---')) {
-                // Skip separator line
-                continue;
-            } else {
-                if (inTable) {
-                    tableHtml += '</table></div>';
-                    inTable = false;
-                }
-                tableHtml += line + '<br>';
-            }
+function changeLanguage(lang) {
+    localStorage.setItem('language', lang);
+    document.documentElement.setAttribute('data-lang', lang);
+    updateTranslations();
+}
+
+function updateTranslations() {
+    const lang = document.documentElement.getAttribute('data-lang') || 'en';
+    const translations = window.translations[lang];
+    
+    document.querySelectorAll('[data-i18n]').forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        if (translations[key]) {
+            element.textContent = translations[key];
         }
-        
-        if (inTable) {
-            tableHtml += '</table></div>';
-        }
-        
-        return tableHtml;
-    }
-    
-    return text;
+    });
 }
 
-// Message handling
-function addMessage(content, isUser = false, category = null, tokens = null) {
-    const messagesDiv = document.getElementById('chat-messages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
-    
-    let messageContent = `<div class="message-content">${formatResponse(content)}</div>`;
-    
-    if (category) {
-        const badge = document.createElement('div');
-        badge.className = 'category-badge';
-        badge.textContent = category;
-        messageDiv.appendChild(badge);
-    }
-    
-    messageDiv.innerHTML += messageContent;
-    
-    if (tokens && !isUser) {
-        const tokenUsage = document.createElement('div');
-        tokenUsage.className = 'token-usage';
-        tokenUsage.textContent = `Tokens: ${tokens.total} (prompt: ${tokens.prompt}, completion: ${tokens.completion})`;
-        messageDiv.appendChild(tokenUsage);
-    }
-    
-    messagesDiv.appendChild(messageDiv);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-// Loading state
-function showLoading() {
-    const messagesDiv = document.getElementById('chat-messages');
-    const loadingDiv = document.createElement('div');
-    loadingDiv.className = 'message assistant';
-    loadingDiv.innerHTML = `
-        <div class="loading">
-            <div class="loading-dots">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
-            <span>Thinking...</span>
-        </div>
-    `;
-    loadingDiv.id = 'loading-indicator';
-    messagesDiv.appendChild(loadingDiv);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-function hideLoading() {
-    const loadingDiv = document.getElementById('loading-indicator');
-    if (loadingDiv) {
-        loadingDiv.remove();
-    }
-}
-
-// Form submission
 async function handleSubmit(event) {
     event.preventDefault();
     
     const input = document.getElementById('message-input');
-    const categorySelect = document.getElementById('category-select');
     const message = input.value.trim();
-    const category = categorySelect.value;
     
     if (!message) return;
     
-    // Add user message
-    addMessage(message, true);
+    // Add user message to chat
+    addMessage(message, 'user');
     input.value = '';
     
-    // Show loading state
-    showLoading();
-    
     try {
-        const response = await fetch('/chat', {
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                message,
-                category_override: category || undefined
-            })
+            body: JSON.stringify({ message }),
         });
         
-        const data = await response.json();
-        
-        if (data.error) {
-            throw new Error(data.error);
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
         }
         
-        // Add assistant message
-        addMessage(data.response, false, data.category, data.tokens);
+        const data = await response.json();
+        addMessage(data.response, 'assistant');
         
     } catch (error) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'message assistant';
-        errorDiv.innerHTML = `
-            <div class="error-message">
-                ${error.message || 'An error occurred. Please try again.'}
-            </div>
-        `;
-        document.getElementById('chat-messages').appendChild(errorDiv);
-    } finally {
-        hideLoading();
+        console.error('Error:', error);
+        addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
     }
 }
 
-// Initialize
-window.onload = () => {
-    clearChat();
-    if (os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")) {
-        console.log("Session started");
-    }
-};
+function addMessage(content, type) {
+    const messagesDiv = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${type}`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.textContent = content;
+    
+    messageDiv.appendChild(contentDiv);
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
 </script>
 {% endblock %} 
