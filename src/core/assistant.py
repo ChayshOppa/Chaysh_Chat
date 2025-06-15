@@ -3,34 +3,26 @@ Core assistant functionality for Chaysh.
 Handles prompt rewriting, context management, and response formatting.
 """
 
-import os
-import httpx
+import json
+import re
 import logging
-from typing import Dict, Any, List, Optional
+import os
+from typing import Dict, List, Optional, Any
+from datetime import datetime
+import openai
+from .config import settings
 from src.prompt_categories import detect_category, category_map
 from src.utils.cleaner import clean_gpt_reply, format_table_response
 
-# Configure logging
 logger = logging.getLogger(__name__)
-
-# Only load .env in development
-if os.environ.get("FLASK_ENV") != "production":
-    from dotenv import load_dotenv
-    load_dotenv()
-
-# Get API key at module level
-api_key = os.getenv("OPENROUTER_API_KEY")
-if not api_key:
-    raise Exception("OPENROUTER_API_KEY not found")
 
 class Assistant:
     def __init__(self):
-        """Initialize the assistant with OpenRouter configuration."""
-        self.api_url = "https://openrouter.ai/api/v1/chat/completions"
-        self.model = "openai/gpt-4.1-nano"  # Updated to GPT-4.1 Nano
-        self.max_tokens = 300  # Limit response length
-        self.temperature = 0.7  # Balanced creativity
-        self.top_p = 0.9  # Increased determinism
+        """Initialize the assistant with OpenAI configuration."""
+        self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.model = settings.OPENAI_MODEL
+        self.max_tokens = settings.OPENAI_MAX_TOKENS
+        self.temperature = settings.OPENAI_TEMPERATURE
         
         # Language-specific system prompts
         self.system_prompts = {
@@ -40,11 +32,7 @@ class Assistant:
         
         # Log API key verification (first 4 chars only)
         if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
-            logger.info(f"[Chaysh] API key: {api_key[:4]}... ✅")
-
-    def _truncate_prompt(self, prompt: str, max_length: int = 600) -> str:
-        """Truncate prompt to max length."""
-        return prompt[:max_length] if len(prompt) > max_length else prompt
+            logger.info(f"[Chaysh] API key: {settings.OPENAI_API_KEY[:4]}... ✅")
 
     def build_prompt(self, user_input: str, context: List[Dict[str, str]] = None, category_override: Optional[str] = None) -> List[Dict[str, str]]:
         """
@@ -87,7 +75,7 @@ class Assistant:
         messages.append({"role": "user", "content": rewritten_prompt})
         return messages
 
-    async def get_response(
+    def get_response(
         self,
         user_input: str,
         context: List[Dict[str, str]] = None,
@@ -113,73 +101,59 @@ class Assistant:
             # Add system prompt
             messages.insert(0, {"role": "system", "content": self.system_prompts[lang]})
             
-            # Call OpenRouter API
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    self.api_url,
-                    headers={
-                        "Authorization": f"Bearer {api_key}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": self.model,
-                        "messages": messages,
-                        "max_tokens": self.max_tokens,
-                        "temperature": self.temperature,
-                        "top_p": self.top_p
-                    }
-                )
-                
-                if response.status_code != 200:
-                    raise Exception(f"API error: {response.text}")
-                    
-                result = response.json()
-                raw_response = result['choices'][0]['message']['content']
-                
-                # Clean the response
-                cleaned_response = clean_gpt_reply(raw_response)
-                
-                # Log cleaned output in debug mode
-                if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
-                    logger.debug(f"🧹 Cleaned GPT output: {cleaned_response}")
-                
-                # Format table response if needed
-                if category_override in ["compare", "price"] or (category_result := detect_category(user_input)) and category_result[0] in ["compare", "price"]:
-                    formatted_reply = format_table_response(cleaned_response)
-                    if formatted_reply:
-                        cleaned_response = formatted_reply
-                
-                # Get category from the last message
-                category = None
-                if messages[-1]["role"] == "user":
-                    if category_override and category_override in category_map:
-                        category = category_override
-                    else:
-                        category_result = detect_category(user_input)
-                        category = category_result[0] if category_result else None
-                
-                # Update context with the new exchange (keep last 5 messages total)
-                new_context = messages[-4:] + [{"role": "assistant", "content": cleaned_response}]
-                
-                # Get token usage
-                usage = result.get('usage', {})
-                tokens = {
-                    "prompt": usage.get('prompt_tokens', 0),
-                    "completion": usage.get('completion_tokens', 0),
-                    "total": usage.get('total_tokens', 0)
-                }
-                
-                # Log success in debug mode
-                if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
-                    logger.debug(f"Category: {category}, Tokens: {tokens['total']}")
-                
-                return {
-                    "response": cleaned_response,
-                    "context": new_context,
-                    "category": category,
-                    "tokens": tokens if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes") else None
-                }
-                
+            # Get response from OpenAI
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature
+            )
+            
+            # Extract and clean the response
+            reply = response.choices[0].message.content
+            cleaned_reply = clean_gpt_reply(reply)
+            
+            # Log cleaned output in debug mode
+            if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
+                logger.debug(f"🧹 Cleaned GPT output: {cleaned_reply}")
+            
+            # Format table response if needed
+            if category_override in ["compare", "price"] or (category_result := detect_category(user_input)) and category_result[0] in ["compare", "price"]:
+                formatted_reply = format_table_response(cleaned_reply)
+                if formatted_reply:
+                    cleaned_reply = formatted_reply
+            
+            # Get category from the last message
+            category = None
+            if messages[-1]["role"] == "user":
+                if category_override and category_override in category_map:
+                    category = category_override
+                else:
+                    category_result = detect_category(user_input)
+                    category = category_result[0] if category_result else None
+            
+            # Update context with the new exchange (keep last 5 messages total)
+            new_context = messages[-4:] + [{"role": "assistant", "content": cleaned_reply}]
+            
+            # Get token usage
+            usage = response.usage
+            tokens = {
+                "prompt": usage.prompt_tokens,
+                "completion": usage.completion_tokens,
+                "total": usage.total_tokens
+            }
+            
+            # Log success in debug mode
+            if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
+                logger.debug(f"Category: {category}, Tokens: {tokens['total']}")
+            
+            return {
+                "response": cleaned_reply,
+                "context": new_context,
+                "category": category,
+                "tokens": tokens if os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes") else None
+            }
+            
         except Exception as e:
             # Log the error and return a user-friendly message
             logger.error(f"Error: {str(e)}")
