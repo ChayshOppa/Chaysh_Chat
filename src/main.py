@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 from src.core.assistant import Assistant
+from src.routes.chat import chat_bp
 import asyncio
 from functools import wraps
 import os
@@ -9,6 +10,9 @@ app = Flask(__name__,
     template_folder=os.path.join(os.path.dirname(__file__), 'templates'),
     static_folder=os.path.join(os.path.dirname(__file__), 'static')
 )
+
+# Register blueprints
+app.register_blueprint(chat_bp)
 
 assistant = Assistant()
 

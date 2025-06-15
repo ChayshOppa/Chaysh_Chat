@@ -2,44 +2,10 @@
 
 {% block content %}
 <div class="chat-container">
-    <!-- Welcome Message -->
-    <div class="welcome-message">
-        <h2>👋 Welcome to Chaysh Assistant</h2>
-        <p>I can help you with:</p>
-        <ul>
-            <li>🔍 Product comparisons and prices</li>
-            <li>📅 Event schedules and timelines</li>
-            <li>🌤 Weather forecasts</li>
-            <li>👤 Information about people</li>
-            <li>🌍 Translations and definitions</li>
-        </ul>
-        <p>Try asking me something like:</p>
-        <div class="example-queries">
-            <code>price iPhone 15</code>
-            <code>compare MacBook Pro vs Air</code>
-            <code>weather in Warsaw</code>
-            <code>kiedy gra Iga Świątek</code>
-        </div>
-    </div>
-
-    <!-- Menu Bar -->
-    <div class="menu-bar">
-        <div class="theme-toggle">
-            <button id="themeToggle" onclick="toggleTheme()">
-                <span class="theme-icon">🌓</span>
-                <span class="theme-text" data-i18n="themeToggle">Toggle Theme</span>
-            </button>
-        </div>
-        <div class="language-switch">
-            <select id="langSwitch" onchange="changeLanguage(this.value)">
-                <option value="en">🇬🇧 EN</option>
-                <option value="pl">🇵🇱 PL</option>
-            </select>
-        </div>
-    </div>
-
     <!-- Chat Messages -->
-    <div id="chat-messages" class="chat-messages"></div>
+    <div id="chat-messages" class="chat-messages">
+        <!-- Welcome message will be added here by JavaScript -->
+    </div>
 
     <!-- Input Form -->
     <form id="chat-form" class="chat-form" onsubmit="handleSubmit(event)">
@@ -53,87 +19,6 @@
 </div>
 
 <style>
-/* Welcome Message */
-.welcome-message {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin: 1rem;
-    color: var(--text-primary);
-}
-
-.welcome-message h2 {
-    margin-top: 0;
-    color: var(--primary-color);
-}
-
-.welcome-message ul {
-    list-style: none;
-    padding-left: 0;
-}
-
-.welcome-message li {
-    margin: 0.5rem 0;
-}
-
-.example-queries {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 1rem;
-}
-
-.example-queries code {
-    background: var(--code-bg);
-    padding: 0.3rem 0.6rem;
-    border-radius: 6px;
-    font-family: monospace;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.example-queries code:hover {
-    background: var(--code-bg-hover);
-}
-
-/* Menu Bar */
-.menu-bar {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    display: flex;
-    gap: 1rem;
-    z-index: 100;
-    background: var(--bg-primary);
-    padding: 0.5rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.theme-toggle button,
-.language-switch select {
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.theme-toggle button:hover,
-.language-switch select:hover {
-    background: var(--bg-hover);
-}
-
-.theme-icon {
-    font-size: 1.2em;
-}
-
 /* Chat Messages */
 .chat-messages {
     display: flex;
@@ -259,25 +144,30 @@ th {
 .send-icon {
     font-size: 1.2em;
 }
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .message {
-        max-width: 90%;
-    }
-    
-    .menu-bar {
-        top: 0.5rem;
-        right: 0.5rem;
-    }
-    
-    .chat-form {
-        padding: 0.5rem;
-    }
-}
 </style>
 
 <script>
+// Add welcome message when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const welcomeMessage = {
+        type: 'assistant',
+        content: `👋 Welcome to Chaysh Assistant! I can help you with:
+• 🔍 Product comparisons and prices
+• 📅 Event schedules and timelines
+• 🌤 Weather forecasts
+• 👤 Information about people
+• 🌍 Translations and definitions
+
+Try asking me something like:
+• price iPhone 15
+• compare MacBook Pro vs Air
+• weather in Warsaw
+• kiedy gra Iga Świątek`,
+        category: null
+    };
+    addMessage(welcomeMessage);
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize theme
     const savedTheme = localStorage.getItem('theme') || 'light';
