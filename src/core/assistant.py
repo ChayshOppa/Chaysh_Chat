@@ -10,7 +10,7 @@ import os
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import openai
-from .config import settings
+from src.config import settings
 from src.prompt_categories import detect_category, category_map
 from src.utils.cleaner import clean_gpt_reply, format_table_response
 
