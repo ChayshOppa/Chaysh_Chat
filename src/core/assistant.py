@@ -1,134 +1,111 @@
+import logging
 import os
+import json
+import re
 import httpx
-from typing import Dict, Any, List
+from typing import Dict, Optional
+from src.core.prompt import BASE_PROMPT
+from src.config import Config
 
-# Only load .env in development
-if os.environ.get("FLASK_ENV") != "production":
-    from dotenv import load_dotenv
-    load_dotenv()
-
-# Get API key at module level
-api_key = os.getenv("OPENROUTER_API_KEY")
-print("API key present:", bool(api_key))  # for logging
-
-if not api_key:
-    raise Exception("OPENROUTER_API_KEY not found")
+logger = logging.getLogger(__name__)
 
 class Assistant:
-    def __init__(self):
-        self.api_url = "https://openrouter.ai/api/v1/chat/completions"
-        self.model = "openai/gpt-4.1-nano"  # Updated to GPT-4.1 Nano
-        self.max_tokens = 300  # Limit response length
-        self.temperature = 0.7  # Balanced creativity
-        self.top_p = 0.9  # Increased determinism
-        
-        # Language-specific system prompts
-        self.system_prompts = {
-            'en': "You are Chaysh, a helpful AI assistant. Provide clear, concise responses and relevant suggestions in English.",
-            'pl': "Jesteś Chaysh, pomocnym asystentem AI. Odpowiadaj jasno i zwięźle po polsku, dostarczając odpowiednie sugestie."
-        }
-        
-        # Language-specific suggestions
-        self.suggestions = {
-            'en': [
-                "Can you elaborate on that?",
-                "What specific aspects are you interested in?",
-                "Would you like more detailed information?"
-            ],
-            'pl': [
-                "Czy możesz to rozwinąć?",
-                "Jakie konkretne aspekty Cię interesują?",
-                "Czy chciałbyś bardziej szczegółowe informacje?"
-            ]
-        }
-        
-    def _truncate_prompt(self, prompt: str, max_length: int = 600) -> str:
-        """Truncate prompt to max length."""
-        return prompt[:max_length] if len(prompt) > max_length else prompt
-        
-    async def process_query(self, query: str, lang: str = 'en') -> Dict[str, Any]:
-        """Process a user query and return AI response with suggestions."""
-        try:
-            # Truncate user input
-            truncated_query = self._truncate_prompt(query)
-            
-            # Get language-specific system prompt
-            system_prompt = self.system_prompts.get(lang, self.system_prompts['en'])
-            
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://chaysh-1.onrender.com",
-                "X-Title": "Chaysh AI Assistant"
-            }
-            
-            data = {
-                "model": self.model,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": truncated_query}
-                ],
-                "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
-                "top_p": self.top_p
-            }
-            
-            print(f"Making API request to {self.api_url} with model {self.model}")
-            
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    self.api_url,
-                    headers=headers,
-                    json=data
-                )
-                
-                if response.status_code == 401:
-                    print("API Error: Unauthorized - Invalid or missing API key")
-                    error_msg = "I apologize, but I'm currently unable to process requests due to an authentication issue. Please try again later."
-                    if lang == 'pl':
-                        error_msg = "Przepraszam, ale obecnie nie mogę przetwarzać żądań z powodu problemu z uwierzytelnianiem. Spróbuj ponownie później."
-                    return {
-                        "error": "Authentication failed",
-                        "response": error_msg,
-                        "suggestions": []
-                    }
-                
-                response.raise_for_status()
-                result = response.json()
-                
-                # Extract and truncate the assistant's message
-                assistant_message = result['choices'][0]['message']['content']
-                truncated_response = self._truncate_prompt(assistant_message, 300)
-                
-                # Get language-specific suggestions
-                suggestions = self._generate_suggestions(truncated_query, lang)
-                
-                return {
-                    "response": truncated_response,
-                    "suggestions": suggestions
-                }
-                
-        except httpx.HTTPStatusError as e:
-            print(f"HTTP Error: {e.response.status_code} - {e.response.text}")
-            error_msg = "I apologize, but I encountered an error while processing your request. Please try again later."
-            if lang == 'pl':
-                error_msg = "Przepraszam, ale napotkałem błąd podczas przetwarzania Twojego żądania. Spróbuj ponownie później."
-            return {
-                "error": f"API request failed: {e.response.status_code}",
-                "response": error_msg,
-                "suggestions": []
-            }
-        except Exception as e:
-            print(f"Error processing query: {str(e)}")
-            error_msg = "I apologize, but I encountered an unexpected error. Please try again later."
-            if lang == 'pl':
-                error_msg = "Przepraszam, ale napotkałem nieoczekiwany błąd. Spróbuj ponownie później."
-            return {
-                "error": str(e),
-                "response": error_msg,
-                "suggestions": []
-            }
+    """AI Assistant for processing queries and generating structured responses."""
     
-    def _generate_suggestions(self, query: str, lang: str = 'en') -> List[str]:
-        """Generate relevant follow-up suggestions based on the query and language."""
-        return self.suggestions.get(lang, self.suggestions['en'])[:3]  # Return top 3 suggestions 
+    def __init__(self):
+        """Initialize the assistant with configuration."""
+        self.mode = "product"  # Default mode as per project rules
+        self.api_key = Config.OPENROUTER_API_KEY
+        self.api_url = Config.OPENROUTER_API_URL
+        flask_debug = os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
+
+        if not self.api_key:
+            logger.error("[Chaysh] ❌ Missing OPENROUTER_API_KEY")
+            raise ValueError("OPENROUTER_API_KEY is not set. Add it to your .env file for local development or as a secret in Render's dashboard.")
+        elif flask_debug:
+            logger.info("[Chaysh] Loaded OPENROUTER_API_KEY ✅")
+    
+    async def process_query(self, query: str, context: Optional[Dict] = None, language: str = 'en') -> Dict:
+        """
+        Process a user query and return structured response.
+        
+        Args:
+            query: User's search query
+            context: Optional context from previous interactions
+            language: Language code ('en' or 'pl')
+            
+        Returns:
+            Dict containing structured response
+        """
+        # Real call to OpenRouter API
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        body = {
+            "model": Config.DEFAULT_MODEL,
+            "messages": [
+                {"role": "system", "content": BASE_PROMPT},
+                {"role": "user", "content": query}
+            ],
+            "temperature": 0.7,
+            "max_tokens": Config.MAX_TOKENS
+        }
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.post(self.api_url, headers=headers, json=body)
+                response.raise_for_status()
+                raw_response = response.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            logger.error("OpenRouter API request failed: %s", e)
+            return self._get_fallback_response(query)
+
+        flask_debug = os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
+        if flask_debug:
+            logger.debug("Raw AI response: %s", raw_response)
+
+        # Extract the first valid JSON object from the raw response
+        json_match = re.search(r'```json\s*(\{.*?\})\s*```', raw_response, re.DOTALL)
+        if not json_match:
+            logger.warning("No valid JSON found in raw response. Using fallback.")
+            return self._get_fallback_response(query)
+
+        try:
+            parsed_json = json.loads(json_match.group(1))
+        except json.JSONDecodeError:
+            logger.error("Failed to parse JSON from raw response. Using fallback.")
+            return self._get_fallback_response(query)
+
+        # Validate and ensure required fields
+        validated_response = self._validate_response(parsed_json, query)
+        if flask_debug:
+            logger.debug("Parsed and validated JSON: %s", json.dumps(validated_response, indent=2))
+
+        return validated_response
+
+    def _validate_response(self, parsed_json: Dict, original_query: str) -> Dict:
+        """Validate and ensure required fields in the parsed JSON response."""
+        validated = {
+            "name": parsed_json.get("name", "Unknown result"),
+            "description": parsed_json.get("description", ["No information available."]),
+            "source_info": parsed_json.get("source_info", "No source info."),
+            "suggestions": parsed_json.get("suggestions", [])
+        }
+        # Ensure suggestions have at least a 'text' field
+        validated["suggestions"] = [s for s in validated["suggestions"] if isinstance(s, dict) and "text" in s]
+        # Inject default action if missing
+        if "actions" not in parsed_json:
+            validated["actions"] = [{"type": "chat", "label": "Chaysh Assistant", "query": original_query}]
+        else:
+            validated["actions"] = parsed_json["actions"]
+        return validated
+
+    def _get_fallback_response(self, query: str) -> Dict:
+        """Return a fallback response if parsing fails."""
+        return {
+            "name": "Unknown result",
+            "description": ["No information available."],
+            "source_info": "No source info.",
+            "suggestions": [],
+            "actions": [{"type": "chat", "label": "Chaysh Assistant", "query": query}]
+        } 
