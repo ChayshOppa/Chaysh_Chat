@@ -3,8 +3,8 @@ from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 import logging
-from app.routes.search import bp
-from app.config import Config
+from src.routes.search import bp as search_bp
+from src.config import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,7 +15,10 @@ load_dotenv()
 
 def create_app(test_config=None):
     """Create and configure the Flask application."""
-    app = Flask(__name__, instance_relative_config=True)
+    app = Flask(__name__,
+        template_folder=os.path.join(os.path.dirname(__file__), 'templates'),
+        static_folder=os.path.join(os.path.dirname(__file__), 'static')
+    )
     
     # Configure the app
     app.config.from_mapping(
@@ -41,7 +44,7 @@ def create_app(test_config=None):
     CORS(app)
 
     # Register blueprints
-    app.register_blueprint(bp)
+    app.register_blueprint(search_bp)
 
     # Register error handlers
     @app.errorhandler(404)
