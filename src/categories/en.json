@@ -1,0 +1,32 @@
+{
+  "pricing": [
+    "how much",
+    "what is the price",
+    "price",
+    "what price",
+    "cost"
+  ],
+  "timeline": [
+    "when",
+    "what date",
+    "schedule",
+    "event date"
+  ],
+  "define": [
+    "what is",
+    "define",
+    "explain",
+    "meaning of"
+  ],
+  "compare": [
+    "compare",
+    "vs",
+    "difference"
+  ],
+  "location": [
+    "where",
+    "location",
+    "place",
+    "based in"
+  ]
+}

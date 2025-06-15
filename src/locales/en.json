@@ -1,0 +1,11 @@
+{
+  "welcome": "Welcome to Chaysh. Ask about artists, prices, events, or anything else!",
+  "send": "Send",
+  "categories": {
+    "pricing": "Pricing",
+    "timeline": "Timeline",
+    "define": "Definition",
+    "compare": "Comparison",
+    "location": "Location"
+  }
+}
