@@ -85,6 +85,11 @@ class Assistant:
             # Get appropriate system prompt
             system_prompt = self._get_system_prompt(category, focus, lang)
             
+            # Debug logging
+            print("[CATEGORY]", category)
+            print("[FOCUS]", focus)
+            print("[SYSTEM PROMPT]", system_prompt)
+            
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
